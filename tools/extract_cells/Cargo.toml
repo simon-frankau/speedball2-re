@@ -1,5 +1,5 @@
 [package]
-name = "tools"
+name = "extract_cells"
 version = "0.1.0"
 authors = ["Simon Frankau <sgf@arbitrary.name>"]
 edition = "2018"
