@@ -6,8 +6,12 @@
 // Megadrive ROM.
 //
 
-use image::GrayImage;
+use std::fs;
 use std::path::Path;
+
+use image::GrayImage;
+
+const CELL_SIZE: usize = 8;
 
 ////////////////////////////////////////////////////////////////////////
 // Cheap wrapper around the image we're producing.
@@ -40,16 +44,35 @@ impl Image {
 }
 
 ////////////////////////////////////////////////////////////////////////
+// Functions to draw raw binary cells to an image
+//
+
+fn draw_cell(img: &mut Image, x: usize, y:usize, data: &[u8]) {
+    // Inefficient, but can't iterate an array, or return an iterator over it.
+    let mut pixel_iter = data.iter().flat_map(|p| vec![p >> 4, p & 0xf]);
+
+    for x_off in 0..CELL_SIZE {
+        for y_off in 0..CELL_SIZE {
+            let raw_pixel = pixel_iter.next().unwrap();
+            let pixel = raw_pixel * 16; // TODO: Palette lookup.
+            img.set_pixel(x + x_off, y + y_off, pixel);
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
 // Entry point
 //
 
 fn main() {
-    println!("Hello, world!");
+    let data = fs::read("../speedball2-usa.bin").unwrap();
 
     let mut my_image = Image::new(64, 64);
     for i in 16..48 {
         my_image.set_pixel(i, i + 10, 128 + i as u8);
     }
+
+    draw_cell(&mut my_image, 32, 32, &data[100000..]);
 
     my_image.save(Path::new("my_image.png"));
 }
