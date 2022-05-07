@@ -81,15 +81,17 @@ fn draw_cells(img: &mut Image, x: usize, y:usize, data: &[u8], w: usize, h:usize
 // Entry point
 //
 
+// Width and height in cells.
+fn build_image(data: &[u8], w: usize, h: usize) -> Image {
+    let mut img = Image::new(w * CELL_SIZE, h * CELL_SIZE);
+    draw_cells(&mut img, 0, 0, data, w, h);
+    img
+}
+
 fn main() {
     let data = fs::read("../speedball2-usa.bin").unwrap();
 
-    let mut my_image = Image::new(64, 64);
-    for i in 16..48 {
-        my_image.set_pixel(i, i + 10, 128 + i as u8);
-    }
+    let img = build_image(&data, 128, 128);
 
-    draw_cells(&mut my_image, 32, 32, &data[100000..], 3, 2);
-
-    my_image.save(Path::new("my_image.png"));
+    img.save(Path::new("cells.png"));
 }
