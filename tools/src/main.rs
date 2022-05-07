@@ -11,7 +11,11 @@ use std::path::Path;
 
 use image::GrayImage;
 
+// A cell is 8x8.
 const CELL_SIZE: usize = 8;
+
+// Each byte stores 2 pixels.
+const CELL_LEN: usize = CELL_SIZE * CELL_SIZE / 2;
 
 ////////////////////////////////////////////////////////////////////////
 // Cheap wrapper around the image we're producing.
@@ -47,6 +51,7 @@ impl Image {
 // Functions to draw raw binary cells to an image
 //
 
+// One cell
 fn draw_cell(img: &mut Image, x: usize, y:usize, data: &[u8]) {
     // Inefficient, but can't iterate an array, or return an iterator over it.
     let mut pixel_iter = data.iter().flat_map(|p| vec![p >> 4, p & 0xf]);
@@ -56,6 +61,18 @@ fn draw_cell(img: &mut Image, x: usize, y:usize, data: &[u8]) {
             let raw_pixel = pixel_iter.next().unwrap();
             let pixel = raw_pixel * 16; // TODO: Palette lookup.
             img.set_pixel(x + x_off, y + y_off, pixel);
+        }
+    }
+}
+
+// Draw out a set of cells, stored sequentially.
+fn draw_cells(img: &mut Image, x: usize, y:usize, data: &[u8], w: usize, h:usize) {
+    let mut cell_data_iter = data.chunks(CELL_LEN);
+
+    for cy in 0..h {
+        for cx in 0..w {
+            let next_cell_data = cell_data_iter.next().unwrap();
+            draw_cell(img, x + cx * CELL_SIZE, y + cy * CELL_SIZE, &next_cell_data);
         }
     }
 }
@@ -72,7 +89,7 @@ fn main() {
         my_image.set_pixel(i, i + 10, 128 + i as u8);
     }
 
-    draw_cell(&mut my_image, 32, 32, &data[100000..]);
+    draw_cells(&mut my_image, 32, 32, &data[100000..], 3, 2);
 
     my_image.save(Path::new("my_image.png"));
 }
