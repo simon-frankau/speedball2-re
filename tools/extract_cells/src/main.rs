@@ -9,13 +9,22 @@
 use std::fs;
 use std::path::Path;
 
-use image::GrayImage;
+use image::RgbImage;
 
 // A cell is 8x8.
 const CELL_SIZE: usize = 8;
 
 // Each byte stores 2 pixels.
 const CELL_LEN: usize = CELL_SIZE * CELL_SIZE / 2;
+
+// 16 colour palette.
+const PALETTE_SIZE: usize = 16;
+
+// Palettes found in the file by `find_palettes`.
+const PALETTE_ADDRS: [usize; 13] = [
+    0x0007c4, 0x02260c, 0x025a5e, 0x029ede, 0x029efe, 0x0454cc, 0x049bfe, 0x051fe2, 0x053e1c,
+    0x055c36, 0x057a54, 0x05983a, 0x05d8cc,
+];
 
 ////////////////////////////////////////////////////////////////////////
 // Cheap wrapper around the image we're producing.
@@ -25,24 +34,30 @@ struct Image {
     width: usize,
     height: usize,
     data: Vec<u8>,
+    palette: Vec<(u8, u8, u8)>,
 }
 
 impl Image {
-    fn new(width: usize, height: usize) -> Image {
+    fn new(width: usize, height: usize, palette: Vec<(u8, u8, u8)>) -> Image {
         Image {
             width,
             height,
-            data: vec![0; width * height],
+            data: vec![0; width * height * 3],
+            palette,
         }
     }
 
     fn set_pixel(&mut self, x: usize, y: usize, value: u8) {
-        self.data[y * self.width + x] = value;
+        let idx = (y * self.width + x) * 3;
+        let (r, g, b) = self.palette[value as usize];
+        self.data[idx] = r;
+        self.data[idx + 1] = g;
+        self.data[idx + 2] = b;
     }
 
     fn save(&self, path: &Path) {
         let img =
-            GrayImage::from_vec(self.width as u32, self.height as u32, self.data.clone()).unwrap();
+            RgbImage::from_vec(self.width as u32, self.height as u32, self.data.clone()).unwrap();
         img.save(path).unwrap();
     }
 }
@@ -52,21 +67,20 @@ impl Image {
 //
 
 // One cell
-fn draw_cell(img: &mut Image, x: usize, y:usize, data: &[u8]) {
+fn draw_cell(img: &mut Image, x: usize, y: usize, data: &[u8]) {
     // Inefficient, but can't iterate an array, or return an iterator over it.
     let mut pixel_iter = data.iter().flat_map(|p| vec![p >> 4, p & 0xf]);
 
     for y_off in 0..CELL_SIZE {
         for x_off in 0..CELL_SIZE {
-            let raw_pixel = pixel_iter.next().unwrap();
-            let pixel = raw_pixel * 16; // TODO: Palette lookup.
+            let pixel = pixel_iter.next().unwrap();
             img.set_pixel(x + x_off, y + y_off, pixel);
         }
     }
 }
 
 // Draw out a set of cells, stored sequentially.
-fn draw_cells(img: &mut Image, x: usize, y:usize, data: &[u8], w: usize, h:usize) {
+fn draw_cells(img: &mut Image, x: usize, y: usize, data: &[u8], w: usize, h: usize) {
     let mut cell_data_iter = data.chunks(CELL_LEN);
 
     for cy in 0..h {
@@ -81,19 +95,36 @@ fn draw_cells(img: &mut Image, x: usize, y:usize, data: &[u8], w: usize, h:usize
 // Entry point
 //
 
+fn extract_colour(data: &[u8]) -> (u8, u8, u8) {
+    // 3-bit RGB values.
+    let r = (data[1] >> 1) & 7;
+    let g = (data[1] >> 5) & 7;
+    let b = (data[0] >> 1) & 7;
+
+    (r << 5, g << 5, b << 5)
+}
+
+// Build a palette from a piece of memory.
+fn build_palette(data: &[u8]) -> Vec<(u8, u8, u8)> {
+    data.chunks(2).take(PALETTE_SIZE).map(|v| extract_colour(v)).collect()
+}
+
 // Width and height in cells.
-fn build_image(data: &[u8], w: usize, h: usize) -> Image {
-    let mut img = Image::new(w * CELL_SIZE, h * CELL_SIZE);
+fn build_image(data: &[u8], w: usize, h: usize, palette_addr: usize) -> Image {
+    let mut img = Image::new(w * CELL_SIZE, h * CELL_SIZE, build_palette(&data[palette_addr..]));
     draw_cells(&mut img, 0, 0, data, w, h);
+
     img
 }
 
 fn main() {
     let data = fs::read("../../speedball2-usa.bin").unwrap();
     let total_cells = 128 * 128;
+    let w = 32; // Seems a reasonable width.
 
-    for w in 144..=144 {
-        let img = build_image(&data, w, total_cells / w);
-        img.save(Path::new(format!("cells-{:02}.png", w).as_str()));
+    for (idx, palette) in PALETTE_ADDRS.iter().enumerate() {
+        println!("Run #{}", idx);
+        let img = build_image(&data, w, total_cells / w, *palette);
+        img.save(Path::new(format!("cells-colour-{:02}.png", idx).as_str()));
     }
 }
