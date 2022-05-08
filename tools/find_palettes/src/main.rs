@@ -28,16 +28,25 @@ fn looks_like_palette(data: &[u8]) -> bool {
     }
 
     // All zero probably isn't a palette
-    return true;
+    data[..16].iter().any(|x| *x != 0)
 }
 
 fn main() {
     let data = fs::read("../../speedball2-usa.bin").unwrap();
 
-    // TODO: Run length encode.
+    // Palettes tend to be odd and even, so this logic is messy...
+    let mut last_maybe_palette = false;
+    let mut last_maybe_palette2 = false;
+    let mut start = 0;
     for (idx, window) in data.windows(PALETTE_LEN).enumerate() {
-        if looks_like_palette(window) {
-            println!("{:06x}", idx);
+        let maybe_palette = looks_like_palette(window);
+        if maybe_palette && !last_maybe_palette && !last_maybe_palette2 {
+            print!("{:06x}..", idx);
+            start = idx;
+        } else if !maybe_palette && !last_maybe_palette && last_maybe_palette2 {
+            println!("{:06x} ({})", idx, idx - start);
         }
+        last_maybe_palette2 = last_maybe_palette;
+        last_maybe_palette = maybe_palette;
     }
 }
