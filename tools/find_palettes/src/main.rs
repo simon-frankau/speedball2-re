@@ -13,6 +13,9 @@ const PALETTE_SIZE: usize = 16;
 // 2 bytes per entry.
 const PALETTE_LEN: usize = PALETTE_SIZE * 2;
 
+// Assume real palettes don't have repeated colours
+const NO_REPEATS: bool = true;
+
 // Does the data at the start of the slice look like a potential
 // palette entry?
 fn looks_like_colour(data: &[u8]) -> bool {
@@ -30,7 +33,22 @@ fn looks_like_palette(data: &[u8]) -> bool {
     }
 
     // All zero probably isn't a palette
-    data[..16].iter().any(|x| *x != 0)
+    if !data[..16].iter().any(|x| *x != 0) {
+       return false;
+    }
+
+    if NO_REPEATS {
+        // Check for repeats, inefficiently (n^2, small n)
+        for i in 0 .. PALETTE_SIZE {
+            for j in i + 1 .. PALETTE_SIZE {
+                if data[i*2] == data[j*2] && data[i*2+1] == data[j*2+1] {
+                    return false;
+                }
+            }
+        }
+    }
+
+    true
 }
 
 fn extract_colour(data: &[u8]) -> Vec<u8> {
