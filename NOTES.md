@@ -12,28 +12,25 @@ This will be some ongoing work, I think, to break it apart.
 
 ## Bits of graphics
 
-Should become file sections. Viewed at 32 cells across.
+Rough addresses (to be refined):
 
-8 rows = 32 cells x 32 bytes/cell - 1024 bytes
-1 row = 128 bytes
-
- * Row 1112 - Splash screen
- * Row 1216 - Splash screen #2?
- * Row 1312 - Some data, not sure if graphics?
- * Row 1451 - Font, followed by something unobvious
- * Row 1488 - Strange graphics/data
- * Row 1527 - Goal score picture or something? Palette 0
- * Row 1624 - Another font, followed by graphics-looking stuff,
+ * 0x022c00 - Splash screen
+ * 0x026000 - Splash screen #2?
+ * 0x029000 - Some data, not sure if graphics?
+ * 0x02d580 - Font, followed by something unobvious
+ * 0x02e6ca - Strange graphics/data
+ * 0x02fcaa - Goal score picture or something? Palette 0
+ * 0x032c4a - Another font, followed by graphics-looking stuff,
               palette 0, sprite fragments down to...
- * Row 2216 - Weird  bits until
- * Row 2232 - Background tiles. Palette 5.
- * Row 2360 - Over to the weird data bits...
- * Row 2376 - Victory picture? Palette 6.
- * Row 2520 - Loss picture? Palette ???, close to 6.
- * Row 2624 - Not-graphics-looking data
- * Row 3104 - Big font, then various bits associated with management
+ * 0x0454ca - Weird  bits until
+ * 0x045c00 - Background tiles. Palette 5.
+ * 0x049bfc - Over to the weird data bits...
+ * 0x4a400? - Victory picture? Palette 6.
+ * 0x4ec00? - Loss picture? Palette ???, close to 6.
+ * 0x051fe0 - Not-graphics-looking data
+ * 0x0610c4 - Big font, then various bits associated with management
               pages, Palette 3.
- * Row 4031 - End of data
+ * 0x07e006 - End of data
 
 ## Palettes
 
