@@ -13,8 +13,11 @@ const PALETTE_SIZE: usize = 16;
 // 2 bytes per entry.
 const PALETTE_LEN: usize = PALETTE_SIZE * 2;
 
-// Assume real palettes don't have repeated colours
+// Assume real palettes don't have repeated colours.
 const NO_REPEATS: bool = true;
+
+// Assume real palettes start with black.
+const START_WITH_BLACK: bool = true;
 
 // Does the data at the start of the slice look like a potential
 // palette entry?
@@ -26,6 +29,10 @@ fn looks_like_colour(data: &[u8]) -> bool {
 
 // Looks like a palette if we have 16 consecutive colours.
 fn looks_like_palette(data: &[u8]) -> bool {
+   if START_WITH_BLACK && (data[0] != 0 || data[1] != 0) {
+       return false;
+   }
+
     for i in 0..16 {
         if !looks_like_colour(&data[2 * i..]) {
             return false;
