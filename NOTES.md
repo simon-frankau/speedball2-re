@@ -14,7 +14,10 @@ This will be some ongoing work, I think, to break it apart.
 
 Rough addresses (to be refined):
 
- * 0x022c00 - Splash screen
+ * 0x02260c - Palette for splash screen
+ * 
+
+ * 0x022c00 - Splash screen - palette 1
  * 0x026000 - Splash screen #2?
  * 0x029000 - Some data, not sure if graphics?
  * 0x02d580 - Font, followed by something unobvious
@@ -32,23 +35,42 @@ Rough addresses (to be refined):
               pages, Palette 3.
  * 0x07e006 - End of data
 
+DAT_00025a5c used next to DAT_0002260a, which is next to splash screen.
+
+Chunks of graphics dealt with by `display_splash`:
+
+ * 0x02260a - `splash_start1`
+ * 0x025a5c - `splash_start2`
+ * 0x0454ca - `splash_unknown6` - Has two palettes.
+ * 0x049bfc - `splash_victory` - Victory image
+ * 0x04e66e - `splash_unknown1`
+ * 0x051fe0 - `splash_unknown2`
+ * 0x053e1a - `splash_unknown3`
+ * 0x055c34 - `splash_unknown4`
+ * 0x057a52 - `splash_unknown5`
+ * 0x059838 - `splash_unknown7`
+ * 0x05d8ca - `splash_unknown8`
+
+All have a palette at offset 2, except `splash_unknown6`, which is
+special-cased with 2 palettes!
+
 ## Palettes
 
 `find_palettes` suggests palettes located at:
 
- * 0x0007c4 - Palette 0
- * 0x02260c - Palette 1
- * 0x025a5e - Palette 2
- * 0x029ede - Palette 3
- * 0x029efe - Palette 4
- * 0x0454cc - Palette 5
- * 0x049bfe - Palette 6
- * 0x051fe2 - Palette 7
- * 0x053e1c - Palette 8
- * 0x055c36 - Palette 9
- * 0x057a54 - Palette 10
- * 0x05983a - Palette 11
- * 0x05d8cc - Palette 12
+ * 0x0007c4 - Palette 0 - ???
+ * 0x02260c - Palette 1 - `splash_start1`
+ * 0x025a5e - Palette 2 - `splash_start2`
+ * 0x029ede - Palette 3 - ???
+ * 0x029efe - Palette 4 - ???
+ * 0x0454cc - Palette 5 - `splash_unknown6`
+ * 0x049bfe - Palette 6 - `splash_victory`
+ * 0x051fe2 - Palette 7 - `splash_unknown2`
+ * 0x053e1c - Palette 8 - `splash_unknown3`
+ * 0x055c36 - Palette 9 - `splash_unknown4`
+ * 0x057a54 - Palette 10 - `splash_unknown5`
+ * 0x05983a - Palette 11 - `splash_unknown7`
+ * 0x05d8cc - Palette 12 -  `splash_unknown8`
 
 This list might not be complete, but it feels like a good start!
 
@@ -67,3 +89,8 @@ Colour scheme #3/4 - Row 3103 (tail of resources)onwards looking pretty sweet.
 #6 - Nothing useful
 #7-#10 - Nothing useful. Misaligned?
 #11-#12 - Nothing useful?
+
+## VRAM memory map
+
+`display_splash` puts tile data at 0X7d00, tile map (1000 bytes) at
+0xe010.
