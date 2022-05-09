@@ -80,14 +80,16 @@ impl Image {
 // Functions to draw raw binary cells to an image
 //
 
-fn draw_cell(img: &mut Image, x: usize, y: usize, data: &[u8]) {
+fn draw_cell(img: &mut Image, x: usize, y: usize, data: &[u8], h_flip: bool, v_flip:bool) {
     // Inefficient, but can't iterate an array, or return an iterator over it.
     let mut pixel_iter = data.iter().flat_map(|p| vec![p >> 4, p & 0xf]);
 
     for y_off in 0..CELL_SIZE {
         for x_off in 0..CELL_SIZE {
             let pixel = pixel_iter.next().unwrap();
-            img.set_pixel(x + x_off, y + y_off, pixel);
+            let adj_y_off = if v_flip { CELL_SIZE - 1 - y_off } else { y_off };
+            let adj_x_off = if h_flip { CELL_SIZE - 1 - x_off } else { x_off };
+            img.set_pixel(x + adj_x_off, y + adj_y_off, pixel);
         }
     }
 }
@@ -134,13 +136,15 @@ fn draw_splash(data: &[u8], mut addr: usize, file_name: &Path) {
         for x in 0..SCREEN_WIDTH {
             let tile_data = (data[map_ptr] as u16) << 8 | data[map_ptr + 1] as u16;
             map_ptr += 2;
-            let tile_num = tile_data & 0x7ff;
-            if tile_num != tile_data {
+            let tile_num = tile_data & 0x07ff;
+            let h_flip = tile_data & 0x0800 != 0;
+            let v_flip = tile_data & 0x1000 != 0;
+            if tile_data & 0xe000 != 0 {
                 println!("Warning at {}, {}: {:04x}", x, y, tile_data - tile_num);
             }
 
             let tile_addr = cell_addr + tile_num as usize * CELL_LEN;
-            draw_cell(&mut img, x * CELL_SIZE, y * CELL_SIZE, &data[tile_addr..]);
+            draw_cell(&mut img, x * CELL_SIZE, y * CELL_SIZE, &data[tile_addr..], h_flip, v_flip);
         }
     }
 
