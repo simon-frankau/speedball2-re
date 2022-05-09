@@ -41,7 +41,7 @@ Chunks of graphics dealt with by `display_splash`:
 
  * 0x02260a - `splash_start1`
  * 0x025a5c - `splash_start2`
- * 0x0454ca - `splash_unknown6` - Has two palettes.
+ * 0x0454ca - `splash_unknown6` - Has two palettes, taken from 0x29f5e
  * 0x049bfc - `splash_victory` - Victory image
  * 0x04e66e - `splash_unknown1`
  * 0x051fe0 - `splash_unknown2`

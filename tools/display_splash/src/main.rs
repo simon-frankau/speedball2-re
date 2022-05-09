@@ -1,9 +1,10 @@
 //
-// Cell extractor
+// Screen displayer
 //
-// Breaks down a binary file into Megadrive-style 8x8 image 'cells',
-// and constructs an image from that. Use to find bitmaps in a
-// Megadrive ROM.
+//
+// Pulls a static screen structure from the Speedball 2 ROM and
+// converts it into an image file. Understands the specific structure
+// used, with a palette, tile map, and set of cells.
 //
 
 use std::fs;
@@ -20,10 +21,23 @@ const CELL_LEN: usize = CELL_SIZE * CELL_SIZE / 2;
 // 16 colour palette.
 const PALETTE_SIZE: usize = 16;
 
-// Palettes found in the file by `find_palettes`.
-const PALETTE_ADDRS: [usize; 13] = [
-    0x0007c4, 0x02260c, 0x025a5e, 0x029ede, 0x029efe, 0x0454cc, 0x049bfe, 0x051fe2, 0x053e1c,
-    0x055c36, 0x057a54, 0x05983a, 0x05d8cc,
+// Screen width and height, in cells
+const SCREEN_WIDTH: usize = 40;
+const SCREEN_HEIGHT: usize = 25;
+
+// Locations of screens passed to display_splash.
+const SCREENS: [(usize, &str); 11] = [
+    (0x02260a, "start1.png"),
+    (0x025a5c, "start2.png"),
+    (0x0454ca, "unknown6.png"),
+    (0x049bfc, "victory.png"),
+    (0x04e66e, "unknown1.png"),
+    (0x051fe0, "unknown2.png"),
+    (0x053e1a, "unknown3.png"),
+    (0x055c34, "unknown4.png"),
+    (0x057a52, "unknown5.png"),
+    (0x059838, "unknown7.png"),
+    (0x05d8ca, "unknown8.png"),
 ];
 
 ////////////////////////////////////////////////////////////////////////
@@ -66,7 +80,6 @@ impl Image {
 // Functions to draw raw binary cells to an image
 //
 
-// One cell
 fn draw_cell(img: &mut Image, x: usize, y: usize, data: &[u8]) {
     // Inefficient, but can't iterate an array, or return an iterator over it.
     let mut pixel_iter = data.iter().flat_map(|p| vec![p >> 4, p & 0xf]);
@@ -79,22 +92,8 @@ fn draw_cell(img: &mut Image, x: usize, y: usize, data: &[u8]) {
     }
 }
 
-// Draw out a set of cells, stored sequentially.
-fn draw_cells(img: &mut Image, x: usize, y: usize, data: &[u8], w: usize, _h: usize) {
-    let mut cell_data_iter = data.chunks(CELL_LEN);
-
-    let actual_h = data.len() / (CELL_LEN * w);
-
-    for cy in 0..actual_h {
-        for cx in 0..w {
-            let next_cell_data = cell_data_iter.next().unwrap();
-            draw_cell(img, x + cx * CELL_SIZE, y + cy * CELL_SIZE, &next_cell_data);
-        }
-    }
-}
-
 ////////////////////////////////////////////////////////////////////////
-// Entry point
+// Palette stuff
 //
 
 fn extract_colour(data: &[u8]) -> (u8, u8, u8) {
@@ -111,30 +110,45 @@ fn build_palette(data: &[u8]) -> Vec<(u8, u8, u8)> {
     data.chunks(2).take(PALETTE_SIZE).map(|v| extract_colour(v)).collect()
 }
 
-// Width and height in cells.
-fn build_image(data: &[u8], w: usize, h: usize, pal: Vec<(u8, u8, u8)>) -> Image {
-    let mut img = Image::new(w * CELL_SIZE, h * CELL_SIZE, pal);
-    draw_cells(&mut img, 0, 0, data, w, h);
+////////////////////////////////////////////////////////////////////////
+// Main algorithm
+//
 
-    img
+fn draw_splash(data: &[u8], mut addr: usize, file_name: &Path) {
+    // Extract the addresses of the elements.
+    // Skip initial word.
+    addr += 2;
+    let pal_addr = addr;
+    addr += PALETTE_SIZE * 2; // 2 bytes per entry.
+    let map_addr = addr;
+    addr += SCREEN_WIDTH * SCREEN_HEIGHT * 2; // Ditto.
+    let cell_addr = addr;
+
+
+    let pal = build_palette(&data[pal_addr..]);
+    let mut img = Image::new(SCREEN_WIDTH * CELL_SIZE, SCREEN_HEIGHT * CELL_SIZE, pal);
+
+    let mut map_ptr = map_addr;
+    for y in 0..SCREEN_HEIGHT {
+        for x in 0..SCREEN_WIDTH {
+            let tile_data = (data[map_ptr] as u16) << 8 | data[map_ptr + 1] as u16;
+            map_ptr += 2;
+            let tile_num = tile_data & 0x7ff;
+            if tile_num != tile_data {
+                println!("Warning at {}, {}: {:04x}", x, y, tile_num);
+            }
+
+            let tile_addr = cell_addr + tile_num as usize * CELL_LEN;
+            draw_cell(&mut img, x * CELL_SIZE, y * CELL_SIZE, &data[tile_addr..]);
+        }
+    }
+
+    img.save(file_name);
 }
 
 fn main() {
     let data = fs::read("../../speedball2-usa.bin").unwrap();
-    let total_cells = 128 * 128;
-    let w = 32; // Seems a reasonable width.
-
-    let palette_addr = 0x049bfe; // PALETTE_ADDRS[1];
-    let palette = build_palette(&data[palette_addr..]);
-
-//    for (idx, palette) in PALETTE_ADDRS.iter().enumerate() {
-    // for i in 0..32 {
-    let i = 0; {
-        let idx = 1000 + i;
-//        let data2 = &data[0x022e1c + i - 0xc00..];
-        let data2 = &data[0x04a3ee + i..];
-        println!("Run #{}", idx);
-        let img = build_image(data2, w, total_cells / w, palette.clone());
-        img.save(Path::new(format!("cells-colour-{:02}.png", idx).as_str()));
+    for (addr, name) in SCREENS.iter() {
+        draw_splash(&data, *addr, &Path::new(name));
     }
 }
