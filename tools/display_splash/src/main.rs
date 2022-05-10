@@ -9,6 +9,7 @@
 
 use std::fs;
 use std::path::Path;
+use std::str;
 
 use image::RgbImage;
 
@@ -20,10 +21,14 @@ const CELL_LEN: usize = CELL_SIZE * CELL_SIZE / 2;
 
 // 16 colour palette.
 const PALETTE_SIZE: usize = 16;
+// 2 bytes per entry.
+const PALETTE_LEN: usize = PALETTE_SIZE * 2;
 
 // Screen width and height, in cells
 const SCREEN_WIDTH: usize = 40;
 const SCREEN_HEIGHT: usize = 25;
+// 2 bytes per cell reference.
+const SCREEN_LEN: usize = SCREEN_WIDTH * SCREEN_HEIGHT * 2;
 
 // Locations of screens passed to display_splash.
 const SCREENS: [(usize, &str); 11] = [
@@ -116,26 +121,144 @@ fn build_palette(data: &[u8]) -> Vec<(u8, u8, u8)> {
 // Main algorithm
 //
 
+fn decompress(data: &[u8]) -> Vec<u8> {
+    fn as_u32(data: &[u8], idx: usize) -> u32 {
+        (data[idx] as u32) << 24 | (data[idx+1] as u32) << 16 |
+            (data[idx+2] as u32) << 8 | data[idx+3] as u32
+    }
+
+    assert_eq!(str::from_utf8(&data[..16]).unwrap(), "QPAC2-JMP(C)1989");
+
+    let len = as_u32(data, 16) as usize;
+    let checksum = as_u32(data, 20);
+    let mut ptr = 24; // ptr always points to offset of next unread data.
+    let mut curr = 0; // Last data to be loaded.
+
+    fn next_bit(ptr: &mut usize, curr: &mut u32, data: &[u8]) -> bool {
+        if *curr << 1 == 0 {
+            *curr = as_u32(data, *ptr);
+            *ptr += 4;
+            let res = *curr & 0x80000000 != 0;
+            *curr = *curr << 1 | 1;
+            res
+        } else {
+            let res = *curr & 0x80000000 != 0;
+            *curr = *curr << 1;
+            res
+        }
+    };
+
+    fn next_int(ptr: &mut usize, curr: &mut u32, data: &[u8], i: usize) -> usize {
+        let mut x: usize = 0;
+        for _ in 0..i {
+            x = (x << 1) | if next_bit(ptr, curr, data) { 1 } else { 0 };
+        }
+        x
+    };
+
+    println!("Decompressing. Uncompressed length: {:08x} Checksum: {:08x}",
+        len, checksum);
+
+    let mut res: Vec<u8> = Vec::new();
+
+    while res.len() < len {
+       if next_bit(&mut ptr, &mut curr, data) {
+           if next_bit(&mut ptr, &mut curr, data) {
+               if next_bit(&mut ptr, &mut curr, data) {
+                   // 111 XXXX XXXX ...
+                   // Copy x + 9 bytes to output stream.
+                   let c = next_int(&mut ptr, &mut curr, data, 8) + 9;
+                   // println!("111 copy {}", c);
+                   for _ in 0..c {
+                       res.push(next_int(&mut ptr, &mut curr, data, 8) as u8);
+                   }
+               } else {
+                   // 110 XXXX XXXX YYYY YYYY YYYY
+                   // Look back Y + 1 bytes, copy X + 3 bytes.
+                   let c = next_int(&mut ptr, &mut curr, data, 8) + 3;
+                   let lb = next_int(&mut ptr, &mut curr, data, 12) + 1;
+                   // println!("110 lb {} c {} @ {}", lb, c, res.len());
+                   let mut src = res.len() - lb;
+                   for _ in 0..c {
+                       res.push(res[src]);
+                       src += 1;
+                   }
+               }
+           } else {
+               if next_bit(&mut ptr, &mut curr, data) {
+                   // 101 XXXX XXXX XX
+                   // Look back X + 1 bytes, copy 4 bytes of data.
+                   let lb = next_int(&mut ptr, &mut curr, data, 10) + 1;
+                   // println!("101 lb {} c 4 @ {}", lb, res.len());
+                   let mut src = res.len() - lb;
+                   for _ in 0..4 {
+                       res.push(res[src]);
+                       src += 1;
+                   }
+               } else {
+                   // 100 XXXX XXXX X
+                   // Look back X + 1 bytes, copy 3 bytes of data.
+                   let lb = next_int(&mut ptr, &mut curr, data, 9) + 1;
+                   // println!("100 lb {} c 3 @ {}", lb, res.len());
+                   let mut src = res.len() - lb;
+                   for _ in 0..3 {
+                       res.push(res[src]);
+                       src += 1;
+                   }
+               }
+           }
+       } else {
+           if next_bit(&mut ptr, &mut curr, data) {
+               // 01 XXXX XXXX
+               // Look back X + 1 bytes, copy 2 bytes of data.
+               let lb = next_int(&mut ptr, &mut curr, data, 8) + 1;
+               // println!("01 lb {} c 2 @ {}", lb, res.len());
+               let mut src = res.len() - lb;
+               for _ in 0..2 {
+                   res.push(res[src]);
+                   src += 1;
+               }
+           } else {
+               // 00 XXX ....
+               // Copy X + 1 bytes of data directly to the output stream.
+               let c = next_int(&mut ptr, &mut curr, data, 3) + 1;
+               // println!("00 copy {}", c);
+               for _ in 0..c {
+                   res.push(next_int(&mut ptr, &mut curr, data, 8) as u8);
+               }
+           }
+       }
+    }
+
+    res
+}
+
 fn draw_splash(data: &[u8], mut addr: usize, file_name: &Path) {
-    // Extract the addresses of the elements.
-    // Skip initial word.
-    println!("Mystery word: {}{}", data[addr], data[addr+1]);
+    // First element: type.
+    let splash_type = (data[addr] as u16) << 8 | data[addr + 1] as u16;
     addr += 2;
-    let pal_addr = addr;
-    addr += PALETTE_SIZE * 2; // 2 bytes per entry.
-    let map_addr = addr;
-    addr += SCREEN_WIDTH * SCREEN_HEIGHT * 2; // Ditto.
-    let cell_addr = addr;
 
+    // Second element: palette.
+    let pal = build_palette(&data[addr..addr+PALETTE_LEN]);
+    addr += PALETTE_LEN;
 
-    let pal = build_palette(&data[pal_addr..]);
+    // Remaining data may be compressed.
+    let remaining_data = match splash_type {
+        0 => data[addr..].to_vec(),
+        1 => decompress(&data[addr..]),
+        _ => panic!("Unrecognised type: {:04x}", splash_type),
+    };
+
+    let tile_map = &remaining_data[..SCREEN_LEN];
+    let cells = &remaining_data[SCREEN_LEN..];
+
     let mut img = Image::new(SCREEN_WIDTH * CELL_SIZE, SCREEN_HEIGHT * CELL_SIZE, pal);
 
-    let mut map_ptr = map_addr;
+    let mut map_idx = 0;
     for y in 0..SCREEN_HEIGHT {
         for x in 0..SCREEN_WIDTH {
-            let tile_data = (data[map_ptr] as u16) << 8 | data[map_ptr + 1] as u16;
-            map_ptr += 2;
+            let tile_data = (tile_map[map_idx] as u16) << 8 | tile_map[map_idx + 1] as u16;
+            map_idx += 2;
             let tile_num = tile_data & 0x07ff;
             let h_flip = tile_data & 0x0800 != 0;
             let v_flip = tile_data & 0x1000 != 0;
@@ -143,8 +266,8 @@ fn draw_splash(data: &[u8], mut addr: usize, file_name: &Path) {
                 println!("Warning at {}, {}: {:04x}", x, y, tile_data - tile_num);
             }
 
-            let tile_addr = cell_addr + tile_num as usize * CELL_LEN;
-            draw_cell(&mut img, x * CELL_SIZE, y * CELL_SIZE, &data[tile_addr..], h_flip, v_flip);
+            let tile_addr = tile_num as usize * CELL_LEN;
+            draw_cell(&mut img, x * CELL_SIZE, y * CELL_SIZE, &cells[tile_addr..], h_flip, v_flip);
         }
     }
 
@@ -154,7 +277,7 @@ fn draw_splash(data: &[u8], mut addr: usize, file_name: &Path) {
 fn main() {
     let data = fs::read("../../speedball2-usa.bin").unwrap();
     for (addr, name) in SCREENS.iter() {
-        println!("Processing {}...", name);
+        println!("Processing {} ({:08x})...", name, *addr);
         draw_splash(&data, *addr, &Path::new(name));
     }
 }
