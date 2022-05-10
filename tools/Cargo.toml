@@ -4,4 +4,5 @@ members = [
     "extract_cells",
     "find_palettes",
     "display_splash",
+    "extract_sprites",
 ]

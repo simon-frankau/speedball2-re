@@ -23,3 +23,7 @@ just about get a very specific job done.
  * `display_splash` reconstructs images by emulating the ROM's
    `display_splash` function, pulling out a palette, tile map and set
    of tiles to regenerate an image.
+
+ * `extract_sprites` pulls out and lays out sets of cells, like
+   `extract_cells`, except it uses knowledge of the specifics of this
+   ROM to reconstruct the sprites.
