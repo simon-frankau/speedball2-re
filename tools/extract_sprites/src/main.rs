@@ -73,22 +73,34 @@ fn draw_cell(img: &mut Image, x: usize, y: usize, data: &[u8]) {
 
     for y_off in 0..CELL_SIZE {
         for x_off in 0..CELL_SIZE {
-            let pixel = pixel_iter.next().unwrap();
-            img.set_pixel(x + x_off, y + y_off, pixel);
+            let pixel = pixel_iter.next();
+            if pixel == None {
+                break;
+            }
+            img.set_pixel(x + x_off, y + y_off, pixel.unwrap());
         }
     }
 }
 
-// Draw out a set of cells, stored sequentially.
-fn draw_cells(img: &mut Image, x: usize, y: usize, data: &[u8], w: usize, _h: usize) {
-    let mut cell_data_iter = data.chunks(CELL_LEN);
+// 2x2 block of cells
+fn draw_cells_2x2(img: &mut Image, x: usize, y: usize, data: &[u8]) {
+    draw_cell(img, x, y, data);
+    draw_cell(img, x + CELL_SIZE, y, &data[CELL_LEN..]);
+    draw_cell(img, x, y + CELL_SIZE, &data[CELL_LEN * 2..]);
+    draw_cell(img, x + CELL_SIZE, y + CELL_SIZE, &data[CELL_LEN * 3..]);
+}
 
-    let h = data.len() / (CELL_LEN * w);
+// Draw out a bunch of 2x2 blocks.
+fn draw_cells_2x2_multi(img: &mut Image, data: &[u8]) {
+    // We assume all the sprites fit in img, and img's width is a multiple
+    let (mut x, mut y) = (0, 0);
 
-    for cy in 0..h {
-        for cx in 0..w {
-            let next_cell_data = cell_data_iter.next().unwrap();
-            draw_cell(img, x + cx * CELL_SIZE, y + cy * CELL_SIZE, &next_cell_data);
+    for block in data.chunks_exact(CELL_LEN * 4) {
+        draw_cells_2x2(img, x, y, &block);
+        x += 2 * CELL_SIZE;
+        if x >= img.width {
+            x = 0;
+            y += 2 * CELL_SIZE;
         }
     }
 }
@@ -111,22 +123,29 @@ fn build_palette(data: &[u8]) -> Vec<(u8, u8, u8)> {
     data.chunks(2).take(PALETTE_SIZE).map(|v| extract_colour(v)).collect()
 }
 
-// Width and height in cells.
-fn build_image(data: &[u8], w: usize, h: usize, palette_addr: usize) -> Image {
-    let mut img = Image::new(w * CELL_SIZE, h * CELL_SIZE, build_palette(&data[palette_addr..]));
-    draw_cells(&mut img, 0, 0, &data[0x0610c4..], w, h);
+// Width in sprites.
+fn build_image(data: &[u8], w: usize, palette_addr: usize) -> Image {
+    let img_data = &data[0x0610c4..];
+    let num_sprites = img_data.len() / (CELL_LEN * 4);
 
+    let h = (num_sprites - 1) / w + 1;
+
+    let mut img = Image::new(
+        w * 2 * CELL_SIZE,
+        h * 2 * CELL_SIZE,
+        build_palette(&data[palette_addr..]));
+    draw_cells_2x2_multi(&mut img, img_data);
     img
 }
 
 fn main() {
     let data = fs::read("../../speedball2-usa.bin").unwrap();
-    let total_cells = 128 * 128 - (0x0610c4 / CELL_LEN);
-    let w = 4;
+
+    let w = 16;
 
     for (idx, palette) in PALETTE_ADDRS.iter().enumerate() {
         println!("Run #{}", idx);
-        let img = build_image(&data, w, total_cells / w, *palette);
+        let img = build_image(&data, w, *palette);
         img.save(Path::new(format!("cells-colour-{:02}.png", idx).as_str()));
     }
 }
