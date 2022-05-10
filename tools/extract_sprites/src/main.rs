@@ -147,19 +147,17 @@ fn main() {
 
     for (idx, palette) in PALETTE_ADDRS.iter().enumerate() {
         println!("Run #{}", idx);
-        {
-            let w = 16;
-            let img_data = &data[0x0610c4..];
+        for (start, end, width, height, name) in &[
+            (0x0610c4, 0x068244, 2, 2, "2x2"),
+            (0x068244, 0x072444, 4, 4, "4x4"),
+            (0x072444, 0x074284, 1, 1, "1x1"),
+            (0x074284, 0x07e004, 2, 2, "players"),
+        ] {
+            let w = 36 / width;
+            let img_data = &data[*start..*end];
             let palette_data = &data[*palette..];
-            let img = build_image(img_data, w, palette_data, 2, 2);
-            img.save(Path::new(format!("cells-2x2-{:02}.png", idx).as_str()));
-        }
-        {
-            let w = 8;
-            let img_data = &data[0x0610c4 - 128..];
-            let palette_data = &data[*palette..];
-            let img = build_image(img_data, w, palette_data, 4, 4);
-            img.save(Path::new(format!("cells-4x4-{:02}.png", idx).as_str()));
+            let img = build_image(img_data, w, palette_data, *width, *height);
+            img.save(Path::new(format!("cells-{}-{:02}.png", name, idx).as_str()));
         }
     }
 }
