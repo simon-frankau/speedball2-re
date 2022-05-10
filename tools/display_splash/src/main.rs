@@ -37,12 +37,12 @@ const SCREENS: [(usize, &str); 11] = [
     (0x0454ca, "backdrop.png"),
     (0x049bfc, "victory.png"),
     (0x04e66e, "defeat.png"),
-    (0x051fe0, "unknown2.png"),
-    (0x053e1a, "unknown3.png"),
-    (0x055c34, "unknown4.png"),
-    (0x057a52, "unknown5.png"),
-    (0x059838, "unknown7.png"),
-    (0x05d8ca, "unknown8.png"),
+    (0x051fe0, "win_league.png"),
+    (0x053e1a, "win_promo.png"),
+    (0x055c34, "win_cup.png"),
+    (0x057a52, "win_knockout.png"),
+    (0x059838, "title.png"),
+    (0x05d8ca, "arena.png"),
 ];
 
 ////////////////////////////////////////////////////////////////////////

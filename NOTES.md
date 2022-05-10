@@ -44,12 +44,12 @@ Chunks of graphics dealt with by `display_splash`:
  * 0x0454ca - `splash_backdrop` - The backdrop for results tables etc.
  * 0x049bfc - `splash_victory` - Victory image
  * 0x04e66e - `splash_defeat` - Match loss
- * 0x051fe0 - `splash_unknown2`
- * 0x053e1a - `splash_unknown3`
- * 0x055c34 - `splash_unknown4`
- * 0x057a52 - `splash_unknown5`
- * 0x059838 - `splash_unknown7`
- * 0x05d8ca - `splash_unknown8`
+ * 0x051fe0 - `splash_win_league`
+ * 0x053e1a - `splash_win_promo`
+ * 0x055c34 - `splash_win_cup`
+ * 0x057a52 - `splash_win_knockout`
+ * 0x059838 - `splash_title` - Title screen
+ * 0x05d8ca - `splash_arena` - Arena background for intro text.
 
 All have a palette at offset 2, except `splash_backdrop`, which is
 special-cased with 2 palettes, taken from 0x29f5e.
@@ -65,12 +65,12 @@ special-cased with 2 palettes, taken from 0x29f5e.
  * 0x029efe - Palette 4 - ???
  * 0x0454cc - Palette 5 - `splash_backdrop`
  * 0x049bfe - Palette 6 - `splash_victory`
- * 0x051fe2 - Palette 7 - `splash_unknown2`
- * 0x053e1c - Palette 8 - `splash_unknown3`
- * 0x055c36 - Palette 9 - `splash_unknown4`
- * 0x057a54 - Palette 10 - `splash_unknown5`
- * 0x05983a - Palette 11 - `splash_unknown7`
- * 0x05d8cc - Palette 12 -  `splash_unknown8`
+ * 0x051fe2 - Palette 7 - `splash_win_league`
+ * 0x053e1c - Palette 8 - `splash_win_promo`
+ * 0x055c36 - Palette 9 - `splash_win_cup`
+ * 0x057a54 - Palette 10 - `splash_win_knockout`
+ * 0x05983a - Palette 11 - `splash_title`
+ * 0x05d8cc - Palette 12 -  `splash_arena`
 
 This list might not be complete, but it feels like a good start!
 
