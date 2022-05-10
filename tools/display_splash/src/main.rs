@@ -121,7 +121,7 @@ fn build_palette(data: &[u8]) -> Vec<(u8, u8, u8)> {
 // Main algorithm
 //
 
-fn decompress(data: &[u8]) -> Vec<u8> {
+fn decompress(data: &[u8]) -> (Vec<u8>, usize) {
     fn as_u32(data: &[u8], idx: usize) -> u32 {
         (data[idx] as u32) << 24 | (data[idx+1] as u32) << 16 |
             (data[idx+2] as u32) << 8 | data[idx+3] as u32
@@ -230,7 +230,13 @@ fn decompress(data: &[u8]) -> Vec<u8> {
        }
     }
 
-    res
+    (res, ptr)
+}
+
+fn get_data_len(data: &[u8]) -> usize {
+    let largest_tile_id = data.chunks(2).take(SCREEN_WIDTH * SCREEN_HEIGHT).map(|v| ((v[0] as usize) << 8 | (v[1] as usize)) & 0x07ff).max().unwrap();
+
+    SCREEN_LEN + (largest_tile_id + 1) * CELL_LEN
 }
 
 fn draw_splash(data: &[u8], mut addr: usize, file_name: &Path) {
@@ -243,11 +249,15 @@ fn draw_splash(data: &[u8], mut addr: usize, file_name: &Path) {
     addr += PALETTE_LEN;
 
     // Remaining data may be compressed.
-    let remaining_data = match splash_type {
-        0 => data[addr..].to_vec(),
+    // `data_len` is length of source data.
+    let (remaining_data, data_len) = match splash_type {
+        0 => (data[addr..].to_vec(), get_data_len(&data[addr..])),
         1 => decompress(&data[addr..]),
         _ => panic!("Unrecognised type: {:04x}", splash_type),
     };
+
+    // To help tear apart the constituents of the ROM memory map.
+    println!("Image ends at {:08x}.", addr + data_len);
 
     let tile_map = &remaining_data[..SCREEN_LEN];
     let cells = &remaining_data[SCREEN_LEN..];
