@@ -5,4 +5,5 @@ members = [
     "find_palettes",
     "display_splash",
     "extract_sprites",
+    "find_iff",
 ]

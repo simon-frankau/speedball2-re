@@ -140,6 +140,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "find_iff"
+version = "0.1.0"
+dependencies = [
+ "image",
+]
+
+[[package]]
 name = "find_palettes"
 version = "0.1.0"
 dependencies = [

@@ -28,6 +28,8 @@ just about get a very specific job done.
    `extract_cells`, except it uses knowledge of the specifics of this
    ROM to reconstruct the sprites.
 
+ * `find_iff` searches through the ROM for IFF-structured data.
+
 ## TODO
 
  * `extract_sprites` should make the bottom of the players image look pretty
