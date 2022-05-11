@@ -20,11 +20,34 @@ const CELL_LEN: usize = CELL_SIZE * CELL_SIZE / 2;
 // 16 colour palette.
 const PALETTE_SIZE: usize = 16;
 
-// Palettes found in the file by `find_palettes`.
-const PALETTE_ADDRS: [usize; 13] = [
-    0x0007c4, 0x02260c, 0x025a5e, 0x029ede, 0x029efe, 0x0454cc, 0x049bfe, 0x051fe2, 0x053e1c,
-    0x055c36, 0x057a54, 0x05983a, 0x05d8cc,
+// Palettes found in the file by `find_palettes`, and some detective
+// work.
+const PALETTE_ADDRS: [(usize, &str); 23] = [
+    (0x0007c4, "palette_game_a"),
+    (0x0007e4, "palette_game_b"),
+    (0x000804, "palette_game_c"),
+    (0x02260c, "splash_start1"),
+    (0x025a5e, "splash_start2"),
+    (0x029e5e, "palette_gold_a"),
+    (0x029e7e, "palette_gold_b"),
+    (0x029e9e, "palette_gold_c"),
+    (0x029ebe, "palette_mono"),
+    (0x029ede, "palette_training_a"),
+    (0x029efe, "palette_training_b"),
+    (0x029f1e, "palette_magenta_a"),
+    (0x029f3e, "palette_magenta_b"),
+    (0x029f5e, "palette_backdrop_a"),
+    (0x029f7e, "palette_backdrop_b"),
+    (0x0454cc, "splash_backdrop"),
+    (0x049bfe, "splash_victory"),
+    (0x051fe2, "splash_win_league"),
+    (0x053e1c, "splash_win_promo"),
+    (0x055c36, "splash_win_cup"),
+    (0x057a54, "splash_win_knockout"),
+    (0x05983a, "splash_title"),
+    (0x05d8cc, "splash_arena"),
 ];
+
 
 ////////////////////////////////////////////////////////////////////////
 // Cheap wrapper around the image we're producing.
@@ -146,12 +169,12 @@ fn build_image(img_data: &[u8], w: usize, palette_data: &[u8], sw: usize, sh: us
 fn main() {
     let data = fs::read("../../speedball2-usa.bin").unwrap();
 
-    for (idx, palette) in PALETTE_ADDRS.iter().enumerate() {
-        println!("Run #{}", idx);
+    for (palette, palette_name) in PALETTE_ADDRS.iter() {
+        println!("Run for palette '{}'", palette_name);
         for (start, end, width, height, transpose, name) in &[
             // Stuff I haven't pulled apart.
             // Starts after splash screen #2, -2 alignment for the fonts.
-            (0x02914e - 2, 0x02e6ca,  1, 1, false,  "undecoded"),
+            (0x02914e - 2, 0x02e6ca, 1, 1, false, "undecoded"),
              // TODO: Override image width.
             (0x02e6ca, 0x02fcca,  2, 2, true,  "title_font_2x2t"),
             // NB: 64/0x40 bytes other data 0x02fcca - 0x02fd0a.
@@ -175,7 +198,7 @@ fn main() {
             let img_data = &data[*start..*end];
             let palette_data = &data[*palette..];
             let img = build_image(img_data, w, palette_data, *width, *height, *transpose);
-            img.save(Path::new(format!("{}-{:02}.png", name, idx).as_str()));
+            img.save(Path::new(format!("{}-{}.png", name, palette_name).as_str()));
         }
     }
 }

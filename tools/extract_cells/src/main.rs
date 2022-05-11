@@ -20,10 +20,32 @@ const CELL_LEN: usize = CELL_SIZE * CELL_SIZE / 2;
 // 16 colour palette.
 const PALETTE_SIZE: usize = 16;
 
-// Palettes found in the file by `find_palettes`.
-const PALETTE_ADDRS: [usize; 13] = [
-    0x0007c4, 0x02260c, 0x025a5e, 0x029ede, 0x029efe, 0x0454cc, 0x049bfe, 0x051fe2, 0x053e1c,
-    0x055c36, 0x057a54, 0x05983a, 0x05d8cc,
+// Palettes found in the file by `find_palettes`, and some detective
+// work.
+const PALETTE_ADDRS: [(usize, &str); 23] = [
+    (0x0007c4, "palette_game_a"),
+    (0x0007e4, "palette_game_b"),
+    (0x000804, "palette_game_c"),
+    (0x02260c, "splash_start1"),
+    (0x025a5e, "splash_start2"),
+    (0x029e5e, "palette_gold_a"),
+    (0x029e7e, "palette_gold_b"),
+    (0x029e9e, "palette_gold_c"),
+    (0x029ebe, "palette_mono"),
+    (0x029ede, "palette_training_a"),
+    (0x029efe, "palette_training_b"),
+    (0x029f1e, "palette_magenta_a"),
+    (0x029f3e, "palette_magenta_b"),
+    (0x029f5e, "palette_backdrop_a"),
+    (0x029f7e, "palette_backdrop_b"),
+    (0x0454cc, "splash_backdrop"),
+    (0x049bfe, "splash_victory"),
+    (0x051fe2, "splash_win_league"),
+    (0x053e1c, "splash_win_promo"),
+    (0x055c36, "splash_win_cup"),
+    (0x057a54, "splash_win_knockout"),
+    (0x05983a, "splash_title"),
+    (0x05d8cc, "splash_arena"),
 ];
 
 ////////////////////////////////////////////////////////////////////////
@@ -124,10 +146,11 @@ fn main() {
     let total_cells = img_data.len() / CELL_LEN;
     let w = 32; // Seems a reasonable width.
 
-    for (idx, palette_addr) in PALETTE_ADDRS.iter().enumerate() {
-        println!("Run #{}", idx);
+    for (palette_addr, palette_name) in PALETTE_ADDRS.iter() {
+        println!("Running for palette {}", palette_name);
         let palette = &data[*palette_addr..];
         let img = build_image(img_data, w, total_cells / w, palette);
-        img.save(Path::new(format!("cells-colour-{:02}.png", idx).as_str()));
+        img.save(Path::new(
+            format!("cells-{}.png", palette_name).as_str()));
     }
 }
