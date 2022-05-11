@@ -120,9 +120,9 @@ fn build_image(data: &[u8], w: usize, h: usize, palette: &[u8]) -> Image {
 fn main() {
     let data = fs::read("../../speedball2-usa.bin").unwrap();
 
-    let img_data = &data[10..0x0454ca];
+    let img_data = &data;
     let total_cells = img_data.len() / CELL_LEN;
-    let w = 12; // Seems a reasonable width.
+    let w = 32; // Seems a reasonable width.
 
     for (idx, palette_addr) in PALETTE_ADDRS.iter().enumerate() {
         println!("Run #{}", idx);
