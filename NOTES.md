@@ -7,10 +7,17 @@ Rough addresses (to be refined):
  * `0x000000` - 68k reset, interrupt, etc. vectors
  * `0x000100` - Sega ROM id
  * `0x000200`? - Entry point, start of code.
+
+ * `0x013806` - 8SVX audio: start.smp
+ * `0x01736e` - 8SVX audio: end.smp
+ * `0x01ae16` - 8SVX audio: getready.smp
+ * `0x01e392` - 8SVX audio: replay.smp
+ * `0x02246c`? - ??? End of audio bit
+
  * `0x02260a` - `splash_start1` - Arena & Bitmap Brothers
  * `0x025a5c` - `splash_start2` - ImageWorks and Bitmap Brothers
 
- * `0x02914e`? - ??? - 2, 0x02e6ca,  1, 1, false,  "undecoded"),
+ * `0x02914e`? - ??? Random stuff
  * `0x02d580`? - 1x1 font, followed by something unobvious
  * `0x02e6ca` - Title screen font, 2x2.
  * `0x02fcca`? - 64 bytes of unknown
@@ -61,13 +68,10 @@ Colour scheme #3/#4 looks good for stat management screen buttons, faces.
 `display_splash` puts tile data at 0X7d00, tile map (1000 bytes) at
 0xe010.
 
-## IFF
-
-TODO: IFF-looking stuff at 1ae16, probably audio. Extract?
-
 ## Done
 
 Ranges fully understood:
 
+0x00013806 - 0x0002246c
 0x0002260a - 0x0002914e
 0x0002e6ca - 0x0007ffff, except 64 bytes at 0x02fcca
