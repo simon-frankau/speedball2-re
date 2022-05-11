@@ -30,6 +30,9 @@ just about get a very specific job done.
 
  * `find_iff` searches through the ROM for IFF-structured data.
 
+ * `extract_iff` pulls out the IFF files I've identified. Could have
+   been a shell script with dd, I guess, but Rust is fun.
+
 ## TODO
 
  * `extract_sprites` should make the bottom of the players image look pretty

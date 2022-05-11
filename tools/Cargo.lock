@@ -133,6 +133,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "extract_iff"
+version = "0.1.0"
+dependencies = [
+ "image",
+]
+
+[[package]]
 name = "extract_sprites"
 version = "0.1.0"
 dependencies = [
