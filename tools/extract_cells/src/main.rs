@@ -42,7 +42,7 @@ impl Image {
         Image {
             width,
             height,
-            data: vec![0; width * height * 3],
+            data: vec![192; width * height * 3],
             palette,
         }
     }
@@ -110,8 +110,8 @@ fn build_palette(data: &[u8]) -> Vec<(u8, u8, u8)> {
 }
 
 // Width and height in cells.
-fn build_image(data: &[u8], w: usize, h: usize, palette_addr: usize) -> Image {
-    let mut img = Image::new(w * CELL_SIZE, h * CELL_SIZE, build_palette(&data[palette_addr..]));
+fn build_image(data: &[u8], w: usize, h: usize, palette: &[u8]) -> Image {
+    let mut img = Image::new(w * CELL_SIZE, h * CELL_SIZE, build_palette(palette));
     draw_cells(&mut img, 0, 0, data, w, h);
 
     img
@@ -119,12 +119,15 @@ fn build_image(data: &[u8], w: usize, h: usize, palette_addr: usize) -> Image {
 
 fn main() {
     let data = fs::read("../../speedball2-usa.bin").unwrap();
-    let total_cells = 128 * 128;
-    let w = 32; // Seems a reasonable width.
 
-    for (idx, palette) in PALETTE_ADDRS.iter().enumerate() {
+    let img_data = &data[10..0x0454ca];
+    let total_cells = img_data.len() / CELL_LEN;
+    let w = 12; // Seems a reasonable width.
+
+    for (idx, palette_addr) in PALETTE_ADDRS.iter().enumerate() {
         println!("Run #{}", idx);
-        let img = build_image(&data, w, total_cells / w, *palette);
+        let palette = &data[*palette_addr..];
+        let img = build_image(img_data, w, total_cells / w, palette);
         img.save(Path::new(format!("cells-colour-{:02}.png", idx).as_str()));
     }
 }

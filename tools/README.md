@@ -27,3 +27,9 @@ just about get a very specific job done.
  * `extract_sprites` pulls out and lays out sets of cells, like
    `extract_cells`, except it uses knowledge of the specifics of this
    ROM to reconstruct the sprites.
+
+## TODO
+
+ * `extract_sprites` should make the bottom of the players image look pretty
+ * `extract_sprites` should identify the exact palette to use, and
+   only export that.
