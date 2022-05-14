@@ -102,6 +102,71 @@ There's also some colour-like data at:
 `display_splash` puts tile data at 0X7d00, tile map (1000 bytes) at
 0xe010.
 
+## Sound
+
+Sound related code starting at 0x0000f5e2. Looks suspiciously like it
+goes on for a while.
+
+Have reversed down to 0xfde2, so far.
+
+### TODOs
+
+ * fde4 is highly referenced.
+ * fe66
+ * fe9e
+ * ff7c
+ * ffda
+ * fff4
+ * 10068
+ * 1014c calls lots of things
+ * 10178 onward looks like sound data?
+
+### Note information
+
+ * A0[0x00]b - Is sound playing?
+ * A0[0x01]b - Channel number
+ * A0[0x02]l - Pointer to instrument data - loaded in A1 (see below).
+ * A0[0x06]b - Pitch (semi-tones)
+ * A0[0x07]b - Stereo control (L-enable = bit 1, R-enable = bit 0)
+ * A0[0x08]b - Volume
+ * A0[0x09]b - Appears to be unused? Alignment padding?
+ * A0[0x0a]w - Note duration/time remaining
+ * A0[0x0c]l - Pitch shift (additive change to cycle length)
+ * A0[0x10]l - Glissando shift (pitch shift added each step
+ * A0[0x14]w - Glissando duration (number of gliss steps remaining)
+ * A0[0x16]l - Vibrato phase
+ * A0[0x1a]l - Vibrato rate (added to phase each step).
+
+### Instrument information
+
+ * A1[0x0a]b - Initial duration
+ * A1[0x0b]b - Transposition (in semi-tones, 0x80 = nothing)
+ * A1[0x0c]b - FM feedback setting (register 0xb0)
+ * A1[0x0d]b - FM algorithm setting (register 0xb0)
+ * A1[0x0e]b - Glissando size (in semi-tones, 0x80 = nothing)
+ * A1[0x0f]b - Not gliss flag
+ * A1[0x10]b - Gliss duration
+ * A1[0x11]b - Vibrato size multiplier
+ * A1[0x12]b - Vibrato rate
+ * A1[0x13]  - Operator 1 (operator structure described below)
+ * A1[0x1e]  - Operator 2
+ * A1[0x29]  - Operator 3
+ * A1[0x34]  - Operator 4
+
+### Operator structure
+
+ * 0x00b - Enable
+ * 0x01b - FM detune
+ * 0x02b - FM mul
+ * 0x03b - TL (volume)
+ * 0x04b - RS
+ * 0x05b - AR
+ * 0x06b - AM
+ * 0x07b - D1R
+ * 0x08b - D2R
+ * 0x09b - D1L (multiplied by note volume, and otherwise adjusted)
+ * 0x0ab - RR
+
 ## Done
 
 Ranges fully understood:
