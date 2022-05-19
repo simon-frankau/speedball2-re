@@ -10,7 +10,7 @@ FM1Data:	EQU	$4001
 
 Start:		JP	Entry
 
-	;; Effectively the lower byte of the addres,
+	;; Effectively the lower byte of the address,
 	;; but is indexed in z80 space, not 68k space.
 Source:		DEFB	$00
 	;; Mid and upper byte of 68k address.

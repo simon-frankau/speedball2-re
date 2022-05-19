@@ -9,6 +9,12 @@ Rough addresses (to be refined):
  * `0x000200`? - Entry point, start of code.
  * `0x0007c4` - Start of palettes
  * `0x000824`? - ???
+ * `0x00f5e2` - Sound code
+ * `0x010280` - FM sound bank
+ * `0x011a42` - Sound table
+ * `0x011b22` - Sound sequences
+ * `0x0135b0` - Sequence table
+ * `0x013770` - Sound instrument mapping
  * `0x013806` - 8SVX audio: start.smp
  * `0x01736e` - 8SVX audio: end.smp
  * `0x01ae16` - 8SVX audio: getready.smp
@@ -20,6 +26,7 @@ Rough addresses (to be refined):
  * `0x029e5e` - Palettes
  * `0x009f9e`? - More random stuff?
  * `0x02d580`? - 1x1 font, followed by something unobvious
+ * `0x02e620` - Z80 sound code
  * `0x02e6ca` - Title screen font, 2x2.
  * `0x02fcca`? - 64 bytes of unknown
  * `0x02fd0a` - 2x2 sprites making up the score bar at the bottom of
@@ -104,24 +111,48 @@ There's also some colour-like data at:
 
 ## Sound
 
-Sound related code starting at 0x0000f5e2. Looks suspiciously like it
-goes on for a while.
+Rough overview:
 
-Have reversed down to 0xfde2, so far.
+A sound is a sample, or set of 4 voices (Amiga-ism?) being played.
+Each voice plays a sequence (stream of data) on an instrument (which
+has an associated data structure). Each instrument playing a sequence
+is mapped to a channel on the FM chip. There are 6 channels, arranged
+in 2 banks of 3. Each channel has 4 FM operators which may be
+configured to work together in a number of ways. Each operator has its
+own config.
+
+Channel and operator are the chip's terminology, the rest are my names
+for what I've reversed.
+
+ * Sound code runs from 0x00f5e2 to 0x010280.
+ * FM sound bank runs from from 0x010280 to 0x011a42.
+ * Sound table runs from 0x011a42 to 0x011b22.
+ * Sequences run from 0x011b22 to 0x0135b0.
+ * Sequence table runs from 0x0135b0 to 0x013770.
+ * Sound instrument mapping table runs from 0x013770 to 0x013806.
+ * Samples run from 0x013806 to 0x02246c.
+
+Sound data is at 0xffea74..0xffed90.
 
 ### TODOs
 
- * fde4 is highly referenced.
- * fe66
- * fe9e
- * ff7c
- * ffda
- * fff4
- * 10068
- * 1014c calls lots of things
- * 10178 onward looks like sound data?
+Enter the memory map into the top-level map.
+
+Code still to reverse:
+
+ * Use of sound_var_unk_?
+ * Look for any addresses remaining unnamed (All variables named up to fde4).
+ * sound_op_* commands from sound_command_table need reversing.
+
+Data to understand:
+
+ * Sequence at 0x00012240 is never used. Could this be the missing
+   entry for sound_seq_4f. Why's it disabled?
+ * Build tools to extract instruments, sequences, sounds.
 
 ### Note information
+
+The first part of the structure is processed by `sound_process_voice`:
 
  * A0[0x00]b - Is sound playing?
  * A0[0x01]b - Channel number
@@ -137,7 +168,37 @@ Have reversed down to 0xfde2, so far.
  * A0[0x16]l - Vibrato phase
  * A0[0x1a]l - Vibrato rate (added to phase each step).
 
+TODO: The following is still a bit messy.
+
+The rest are used by `sound_update`:
+ * A0[0x1e]w - If zero, stop sound
+ * A0[0x1f]  - ''
+ * A0[0x20]l - Stored in A3, this is a sequence stack, for allowing nested
+               sequences.
+ * A0[0x21]  - ''
+ * A0[0x22]  - ''
+ * A0[0x23]  - ''
+ * A0[0x24]  -
+ * A0[0x25]  -
+ * A0[0x26]b - If zero, step the note. Otherwise zero this byte and
+   start the note (unless pitch < 2, in which case it's also stopped).
+...
+ * A0[0x26]w - Zeroed when playing stops
+ * A0[0x28]l - Another command pointer
+ * A0[0x2c]l - If zero, go straight to next voice. Otherwise loaded into D0, then A2, and... it's a pointer to the commands! Put in A2.
+ * A0[0x30]w - If non-zero, decrement and go to next voice
+ * A0[0x32]w - Value to reset 0x30 to, when processed.
+ * A0[0x36]b - ?
+ * A0[0x38]b - ?
+ * A0[0x3a]w - ?
+ * A0[0x40]w - Voice number. TODO: Index into some table, cleared when note stops.
+ * A0[0x42]w - Time to next update length multiplier.
+
+Total length of the structure is 0x44.
+
 ### Instrument information
+
+Each instrument is 0x3f in size
 
  * A1[0x0a]b - Initial duration
  * A1[0x0b]b - Transposition (in semi-tones, 0x80 = nothing)
