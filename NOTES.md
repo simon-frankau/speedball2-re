@@ -200,6 +200,7 @@ Total length of the structure is 0x44.
 
 Each instrument is 0x3f in size
 
+ * A1[0x00]  - Name
  * A1[0x0a]b - Initial duration
  * A1[0x0b]b - Transposition (in semi-tones, 0x80 = nothing)
  * A1[0x0c]b - FM feedback setting (register 0xb0)

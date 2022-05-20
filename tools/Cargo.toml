@@ -7,4 +7,5 @@ members = [
     "extract_sprites",
     "find_iff",
     "extract_iff",
+    "extract_sounds",
 ]

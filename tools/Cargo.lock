@@ -135,9 +135,10 @@ dependencies = [
 [[package]]
 name = "extract_iff"
 version = "0.1.0"
-dependencies = [
- "image",
-]
+
+[[package]]
+name = "extract_sounds"
+version = "0.1.0"
 
 [[package]]
 name = "extract_sprites"
@@ -149,9 +150,6 @@ dependencies = [
 [[package]]
 name = "find_iff"
 version = "0.1.0"
-dependencies = [
- "image",
-]
 
 [[package]]
 name = "find_palettes"
