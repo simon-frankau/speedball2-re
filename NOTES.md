@@ -172,27 +172,31 @@ TODO: The following is still a bit messy.
 
 The rest are used by `sound_update`:
  * A0[0x1e]w - If zero, stop sound
- * A0[0x1f]  - ''
  * A0[0x20]l - Stored in A3, this is a sequence stack, for allowing nested
                sequences.
- * A0[0x21]  - ''
- * A0[0x22]  - ''
- * A0[0x23]  - ''
- * A0[0x24]  -
- * A0[0x25]  -
+ * A0[0x24]  - ?
+ * A0[0x25]  - ?
  * A0[0x26]b - If zero, step the note. Otherwise zero this byte and
    start the note (unless pitch < 2, in which case it's also stopped).
-...
- * A0[0x26]w - Zeroed when playing stops
- * A0[0x28]l - Another command pointer
- * A0[0x2c]l - If zero, go straight to next voice. Otherwise loaded into D0, then A2, and... it's a pointer to the commands! Put in A2.
- * A0[0x30]w - If non-zero, decrement and go to next voice
- * A0[0x32]w - Value to reset 0x30 to, when processed.
- * A0[0x36]b - ?
- * A0[0x38]b - ?
- * A0[0x3a]w - ?
+ * A0[0x27]b - ?
+ * A0[0x26]w - Zeroed when playing stops.
+ * A0[0x28]l - Pointer to command representing the start of the sequence.
+ * A0[0x2c]l - Command pointer. Usually loaded into A2. If zero, do nothing.
+ * A0[0x30]w - Every update, ff non-zero, decrement and go to next
+               voice. i.e. time-to-next-update
+ * A0[0x32]w - Frames between updates. Copied into 0x30 when it reaches zero.
+ * A0[0x34]b - ?
+ * A0[0x35]b - ?
+ * A0[0x36]w - Unknown variable, set by sequencer.
+ * A0[0x38]b - Unknown variable, updated by sequencer.
+ * A0[0x39]b - ?
+ * A0[0x3a]w - Unknown variable, modified by sequencer.
+ * A0[0x3c]b - ?
+ * A0[0x3d]b - ?
+ * A0[0x3e]b - ?
+ * A0[0x3f]b - ?
  * A0[0x40]w - Voice number. TODO: Index into some table, cleared when note stops.
- * A0[0x42]w - Time to next update length multiplier.
+ * A0[0x42]w - Tempo, stored as number of frames per beat
 
 Total length of the structure is 0x44.
 
