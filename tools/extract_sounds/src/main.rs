@@ -74,11 +74,18 @@ fn print_instruments(data: &[u8]) {
     }
 }
 
+fn name_instruments(data: &[u8]) -> Vec<String> {
+   data[BANK_START+BANK_HEADER_LEN..BANK_END]
+       .chunks(INSTRUMENT_SIZE)
+       .map(|instr| str::from_utf8(&instr[0..0x0a]).unwrap().to_string())
+       .collect()
+}
+
 ////////////////////////////////////////////////////////////////////////
 // Sequence dump
 //
 
-fn print_sequences(data: &[u8]) {
+fn print_sequences(data: &[u8], instr_names: &[String]) {
 
     // Create a table of sounds starting at each address, so we can print out lables.
     let sequence_table = data[SEQ_TABLE_START..SEQ_TABLE_END]
@@ -138,8 +145,12 @@ fn print_sequences(data: &[u8]) {
             0xc4 => println!("    Next"),
             0xc8 => println!("    Noop (0xc8)"),
             0xcc => println!("    Noop (0xcc)"),
-            0xd0 => println!("    Set instrument {:02x}",
-                instrument_bank.next().unwrap().1),
+            0xd0 => {
+                // NB: Misses the indirection via the mapping table, but that
+                // is very nearly the identity function.
+                let i = instrument_bank.next().unwrap().1;
+                println!("    Set instrument {:02x} ({})", i, instr_names[*i as usize]);
+            },
             0xd4 => println!("    Jump to {:02x}\n",
                 instrument_bank.next().unwrap().1),
 
@@ -156,8 +167,10 @@ fn print_sequences(data: &[u8]) {
 fn main() {
     let data = fs::read("../../speedball2-usa.bin").unwrap();
 
+    let instrument_names = name_instruments(&data);
+
     print_instruments(&data);
     println!("");
     println!("");
-    print_sequences(&data);
+    print_sequences(&data, &instrument_names);
 }
