@@ -33,6 +33,11 @@ just about get a very specific job done.
  * `extract_iff` pulls out the IFF files I've identified. Could have
    been a shell script with dd, I guess, but Rust is fun.
 
+ * `extract_sounds` pulls out the sound data in human-readable format
+   (instrument definitions, in terms of FM chip parameters, monophonic
+   sequences, and sounds defined in terms of sets of assignments of
+   sequences to the 4 voices.
+
 ## TODO
 
  * `extract_sprites` should make the bottom of the players image look pretty

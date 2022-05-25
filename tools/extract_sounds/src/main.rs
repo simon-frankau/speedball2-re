@@ -8,19 +8,22 @@ use std::collections::HashMap;
 use std::fs;
 use std::str;
 
-const BANK_START: usize = 0x010280;
-const BANK_END: usize = 0x011a42;
+const INSTRUMENT_START: usize = 0x010280;
+const INSTRUMENT_END: usize = 0x011a42;
 
-const BANK_HEADER_LEN: usize = 0x22;
-
-const INSTRUMENT_SIZE: usize = 0x3f;
-const OPERATOR_SIZE: usize = 0x0b;
+const SOUND_TABLE_START: usize = 0x011a42;
+const SOUND_TABLE_END: usize = 0x011b22;
 
 const SEQ_START: usize = 0x011b22;
 const SEQ_END: usize = 0x0135b0;
 
 const SEQ_TABLE_START: usize = 0x0135b0;
 const SEQ_TABLE_END: usize = 0x013770;
+
+const INSTRUMENT_HEADER_LEN: usize = 0x22;
+
+const INSTRUMENT_SIZE: usize = 0x3f;
+const OPERATOR_SIZE: usize = 0x0b;
 
 ////////////////////////////////////////////////////////////////////////
 // Instrument dump
@@ -66,7 +69,7 @@ fn print_instrument(idx: usize, data: &[u8]) {
 }
 
 fn print_instruments(data: &[u8]) {
-   let instrument_bank = data[BANK_START+BANK_HEADER_LEN..BANK_END]
+   let instrument_bank = data[INSTRUMENT_START+INSTRUMENT_HEADER_LEN..INSTRUMENT_END]
         .chunks(INSTRUMENT_SIZE);
 
     for (idx, instrument) in instrument_bank.enumerate() {
@@ -75,7 +78,7 @@ fn print_instruments(data: &[u8]) {
 }
 
 fn name_instruments(data: &[u8]) -> Vec<String> {
-   data[BANK_START+BANK_HEADER_LEN..BANK_END]
+   data[INSTRUMENT_START+INSTRUMENT_HEADER_LEN..INSTRUMENT_END]
        .chunks(INSTRUMENT_SIZE)
        .map(|instr| str::from_utf8(&instr[0..0x0a]).unwrap().to_string())
        .collect()
@@ -160,6 +163,15 @@ fn print_sequences(data: &[u8], instr_names: &[String]) {
     }
 }
 
+
+fn print_sounds(data: &[u8]) {
+   for (idx, sound) in data[SOUND_TABLE_START..SOUND_TABLE_END]
+       .chunks(4).enumerate() {
+       println!("{:02x}: {:02x} {:02x} {:02x} {:02x}",
+           idx, sound[0], sound[1], sound[2], sound[3]);
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 // Entry point
 //
@@ -169,8 +181,18 @@ fn main() {
 
     let instrument_names = name_instruments(&data);
 
+    println!("Instruments:");
+    println!("------------");
+    println!("");
     print_instruments(&data);
     println!("");
+    println!("Sequences:");
+    println!("----------");
     println!("");
     print_sequences(&data, &instrument_names);
+    println!("");
+    println!("Sounds:");
+    println!("-------");
+    println!("");
+    print_sounds(&data);
 }
