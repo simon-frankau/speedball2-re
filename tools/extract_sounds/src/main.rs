@@ -4,6 +4,7 @@
 // Dump a human-readable version of the sound data.
 //
 
+use std::collections::HashMap;
 use std::fs;
 use std::str;
 
@@ -17,6 +18,9 @@ const OPERATOR_SIZE: usize = 0x0b;
 
 const SEQ_START: usize = 0x011b22;
 const SEQ_END: usize = 0x0135b0;
+
+const SEQ_TABLE_START: usize = 0x0135b0;
+const SEQ_TABLE_END: usize = 0x013770;
 
 ////////////////////////////////////////////////////////////////////////
 // Instrument dump
@@ -75,46 +79,72 @@ fn print_instruments(data: &[u8]) {
 //
 
 fn print_sequences(data: &[u8]) {
-    let mut instrument_bank = data[SEQ_START..SEQ_END].iter();
 
-    while let Some(instr) = instrument_bank.next() {
+    // Create a table of sounds starting at each address, so we can print out lables.
+    let sequence_table = data[SEQ_TABLE_START..SEQ_TABLE_END]
+        .chunks(4)
+        .map(|quad| { match quad {
+                [a, b, c, d] => ((*a as usize) << 24) | ((*b as usize) << 16) | ((*c as usize) << 8) | (*d as usize),
+                _ => panic!("Nope"),
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let mut sequence_map = HashMap::new();
+    for (idx, addr) in sequence_table.iter().enumerate() {
+        let v = sequence_map.entry(addr).or_insert_with(|| Vec::new());
+        v.push(idx);
+    }
+
+    let mut instrument_bank = data[SEQ_START..SEQ_END].iter().enumerate();
+
+    while let Some((offset, instr)) = instrument_bank.next() {
+        let addr = SEQ_START + offset;
+        if let Some(idxs) = sequence_map.get(&addr) {
+            for idx in idxs.iter() {
+                println!("Sound {:02x}:", idx);
+            }
+        }
+
+        // NB: We print a blank line after commands that end a sequence,
+        // to give a visual reference to the gaps between sequences.
         match instr {
-            0x80 => println!("Set 0x36 {}",
-                instrument_bank.next().unwrap()),
-            0x84 => println!("Noop (0x84)"),
-            0x88 => println!("Go to start"),
-            0x8c => println!("Set note length {}",
-                instrument_bank.next().unwrap()),
-            0x90 => println!("Continue"),
-            0x94 => println!("Set tempo {}",
-                instrument_bank.next().unwrap()),
-            0x98 => println!("Noop (0x98)"),
-            0x9c => println!("Noop (0x9c) {}",
-                instrument_bank.next().unwrap()),
-            0xa0 => println!("Noop (0xa0)"),
-            0xa4 => println!("Noop (0xa4)"),
-            0xa8 => println!("Or with 0x38 {}",
-                instrument_bank.next().unwrap()),
-            0xac => println!("Stop"),
-            0xb0 => println!("Call {:02x}",
-                instrument_bank.next().unwrap()),
-            0xb4 => println!("Return"),
-            0xb8 => println!("Add to 3a {}",
-                instrument_bank.next().unwrap()),
-            0xbc => println!("Set 3a {}",
-                instrument_bank.next().unwrap()),
-            0xc0 => println!("For {}",
-                instrument_bank.next().unwrap()),
-            0xc4 => println!("Next"),
-            0xc8 => println!("Noop (0xc8)"),
-            0xcc => println!("Noop (0xcc)"),
-            0xd0 => println!("Set instrument {:02x}",
-                instrument_bank.next().unwrap()),
-            0xd4 => println!("Jump to {:02x}",
-                instrument_bank.next().unwrap()),
+            0x80 => println!("    Set 0x36 {}",
+                instrument_bank.next().unwrap().1),
+            0x84 => println!("    Noop (0x84)"),
+            0x88 => println!("    Go to start\n"),
+            0x8c => println!("    Set note length {}",
+                instrument_bank.next().unwrap().1),
+            0x90 => println!("    Rest"),
+            0x94 => println!("    Set tempo {}",
+                instrument_bank.next().unwrap().1),
+            0x98 => println!("    Noop (0x98)"),
+            0x9c => println!("    Noop (0x9c) {}",
+                instrument_bank.next().unwrap().1),
+            0xa0 => println!("    Noop (0xa0)"),
+            0xa4 => println!("    Noop (0xa4)"),
+            0xa8 => println!("    Or with 0x38 {}",
+                instrument_bank.next().unwrap().1),
+            0xac => println!("    Stop\n"),
+            0xb0 => println!("    Call {:02x}",
+                instrument_bank.next().unwrap().1),
+            0xb4 => println!("    Return\n"),
+            0xb8 => println!("    Add to 3a {}",
+                instrument_bank.next().unwrap().1),
+            0xbc => println!("    Set 3a {}",
+                instrument_bank.next().unwrap().1),
+            0xc0 => println!("    For {}",
+                instrument_bank.next().unwrap().1),
+            0xc4 => println!("    Next"),
+            0xc8 => println!("    Noop (0xc8)"),
+            0xcc => println!("    Noop (0xcc)"),
+            0xd0 => println!("    Set instrument {:02x}",
+                instrument_bank.next().unwrap().1),
+            0xd4 => println!("    Jump to {:02x}\n",
+                instrument_bank.next().unwrap().1),
 
-            n if *n < 0x80 => println!("Note {}", n),
-            n => println!("Invalid op 0x{:02x}", n),
+            n if *n < 0x80 => println!("    Note {}", n),
+            n => println!("    Invalid op 0x{:02x}", n),
         }
     }
 }
