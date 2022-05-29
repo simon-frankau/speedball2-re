@@ -22,13 +22,26 @@ Rough addresses (to be refined):
  * `0x02246c`? - ??? End of audio bit
  * `0x02260a` - `splash_start1` - Arena & Bitmap Brothers
  * `0x025a5c` - `splash_start2` - ImageWorks and Bitmap Brothers
- * `0x02914e`? - ??? Random stuff
+
+ * `0x02914e`? - Misc data
+ * `0x0291ac`? - Code to do with Sega logo.
+ * `0x0291da` - Sega logo
+ * `0x0297fa`? - Misc data
+ * `0x02982a`? - Code
+ * `0x029b38`? - Strings
+ * `0x029e20`? - Code, palette related
  * `0x029e5e` - Palettes
- * `0x009f9e`? - More random stuff?
- * `0x02d580`? - 1x1 font, followed by something unobvious
+ * `0x029f9e` - Just 64 x 0x0e
+ * `0x029fde` - Font for "PUSH START"
+ * `0x02a0de`? - Data
+ * `0x02a16e`? - Strings and string pointers
+ * `0x02a910`? - Unknown
+
+ * `0x02d7ec` - 1x1 font
+ * `0x02e0ec`? - Various data structures
  * `0x02e620` - Z80 sound code
  * `0x02e6ca` - Title screen font, 2x2.
- * `0x02fcca`? - 64 bytes of unknown
+ * `0x02fcaa` - ASCII code to title font index mapping
  * `0x02fd0a` - 2x2 sprites making up the score bar at the bottom of
                 the screen
  * `0x03070a` - 1x1 sprites of the score digits 0-9
@@ -52,7 +65,7 @@ Rough addresses (to be refined):
                 screen.
  * `0x068244` - 4x4 sprites of buttons/body parts, used on training screen
  * `0x072444` - 1x1 font sprites
- * `0x074284` - Player images, used on training screen.
+ * `0x074284` - Player faces, used on training screen.
  * `0x07e006` - End of data
 
 Entries with question marks haven't been fully explored.
@@ -242,4 +255,4 @@ Ranges fully understood:
 0x00013806 - 0x0002246c
 0x0002260a - 0x0002914e
 0x00029e5e - 0x00029f9e
-0x0002e6ca - 0x0007ffff, except 64 bytes at 0x02fcca
+0x0002e620 - 0x0007ffff

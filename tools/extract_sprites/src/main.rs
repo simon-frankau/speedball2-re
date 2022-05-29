@@ -172,12 +172,17 @@ fn main() {
     for (palette, palette_name) in PALETTE_ADDRS.iter() {
         println!("Run for palette '{}'", palette_name);
         for (start, end, width, height, transpose, name) in &[
-            // Stuff I haven't pulled apart.
-            // Starts after splash screen #2, -2 alignment for the fonts.
-            (0x02914e - 2, 0x02e6ca, 1, 1, false, "undecoded"),
-             // TODO: Override image width.
-            (0x02e6ca, 0x02fcca,  2, 2, true,  "title_font_2x2t"),
-            // NB: 64/0x40 bytes other data 0x02fcca - 0x02fd0a.
+            (0x0291da, 0x297fa, 1, 1, false, "sega_logo"),
+            (0x029fde, 0x02a0de, 1, 1, false, "push_start"),
+
+            // Rest of it doesn't really look like graphics! But just
+            // in case...
+            (0x02a910, 0x02d7ec, 1, 1, false, "undecoded3"),
+
+            (0x02d7ec, 0x02e0ec, 1, 1, false, "title_font_1x1"),
+            // TODO: Override image width.
+            (0x02e6ca, 0x02fcaa,  2, 2, true,  "title_font_2x2t"),
+            // 0x02fcaa - 0x02fd0a is ASCII code to font index mapping.
             (0x02fd0a, 0x03070a,  2, 2, true,  "game_scorebar_2x2t"),
             (0x03070a, 0x03084a,  1, 1, false, "game_scoredigits_1x1"),
             (0x03084a, 0x032c4a, 12, 8, false, "game_monitor_12x8"),
