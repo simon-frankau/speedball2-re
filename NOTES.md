@@ -7,8 +7,10 @@ Rough addresses (to be refined):
  * `0x000000` - 68k reset, interrupt, etc. vectors
  * `0x000100` - Sega ROM id
  * `0x000200`? - Entry point, start of code.
- * `0x0007c4` - Start of palettes
- * `0x000824`? - ???
+ * `0x000614` - RAM initialisation code.
+     * `0x0007c4` - Start of palettes
+     * `0x000824`? - ???
+ * `0x002be4'? - Main entry point
  * `0x00f5e2` - Sound code
  * `0x010280` - FM sound bank
  * `0x011a42` - Sound table
@@ -24,18 +26,18 @@ Rough addresses (to be refined):
  * `0x025a5c` - `splash_start2` - ImageWorks and Bitmap Brothers
 
  * `0x02914e`? - Misc data
- * `0x0291ac`? - Code to do with Sega logo.
+ * `0x0291ac`? - Code to do with Sega logo. TODO
  * `0x0291da` - Sega logo
  * `0x0297fa`? - Misc data
- * `0x02982a`? - Code
+ * `0x02982a`? - Code TODO
  * `0x029b38`? - Strings
- * `0x029e20`? - Code, palette related
+ * `0x029e20` - Checksum code
  * `0x029e5e` - Palettes
  * `0x029f9e` - Just 64 x 0x0e
  * `0x029fde` - Font for "PUSH START"
  * `0x02a0de`? - Data
  * `0x02a16e`? - Strings and string pointers
- * `0x02a910`? - Unknown
+ * `0x02a910`? - Unknown TODO
 
  * `0x02d7ec` - 1x1 font
  * `0x02e0ec`? - Various data structures
@@ -119,8 +121,61 @@ There's also some colour-like data at:
 
 ## VRAM memory map
 
-`display_splash` puts tile data at 0X7d00, tile map (1000 bytes) at
-0xe010.
+Many addresses are configured in `init_vdp`.
+
+I believe the +0x80 on the cell maps is 1 blank line at the top (64
+cells of 2 bytes each), balancing 1 line at the bottom, 23 lines used
+out of 25.
+
+I suspect the transposed set-up of the cells in the Window overlay at
+0x0000 makes each column of the screen contiguous in Y coordinates, so
+that drawing into it at sub-cell Y coordinates is straightforward.
+
+TODO: We have a menu mode, and an in-game mode. -
+display_configure_match and display_configure_non_match.
+
+ * 0x0000 has 25x40 transposed tile data used by map at 0xf080. This
+   is fully populated (i.e. uses 1000 cells, 32000 bytes), and used
+   for text etc.
+ * 0x7d00 (1000 tiles after 0x0000) has tile data used by map at
+   0xe080. This is sparsely populated (uses the tile map for
+   compression), and used for backgrounds.
+ * 0xc500 holds the "TV monitor" image cells (12x8), which are mapped
+   into the Window layer, 2 rows down, one column in (code in
+   `display_configure_match`.
+ * 0xd780-0xd800 holds the "offscreen marker" sprites.
+ * 0xd800 is Sprite Attribute base address. Has 8 bytes zero'd by
+   display_configure.
+ * 0xd900-da00 holds "PUSH_START" in game mode.
+ * 0xdc00 is H scroll data table base address.
+ * 0xdc40 holds the blank cell (filled with 0x0).
+ * 0xdc60 holds a cell filled with 0x7.
+ * 0xdc80 holds a cell filled with 0x6.
+ * 0xdca0 holds the sprites for "PUSH START" (up to 0xdda0) in menu mode.
+ * 0xe060-0xffe0 holds the sprites that make up the status bar,
+   stuffed into the non-visible parts of the cell maps!
+ * 0xe080 holds a 64x25 scroll area (40 active columns), reading cells
+   starting at 0x7d00. Used for backgrounds. "Scroll A" in HW config.
+ * 0xf080 also holds a 64x25 cell mapping (40 active columns), with a
+   transposed mapping reading cells from 0x0000 onwards. Used for
+   overlay such as text. "Window" in HW config.
+
+## RAM memory map
+
+ * 0xff0114-0xff0d05 initialised from 0x0007c4-0x0013b5 by todo_init_vars.
+ * 0xff1105-??? is scratch space used by e.g. QPAC-decompress.
+ * 0xffcff4-0xffd470 initialised from 0x0013d4-0x001850 by init_todo_blah_table_ram.
+ * 0xffd470-0xffe1a4 initialised from 0x001872-0x0025a6 by init_todo_something_table_ram.
+ * 0xffe1a4-0xffe7c2 initialised from 0x0025cc-0x002bea by init_todo_another_table_ram.
+
+I initialised these in Ghidra using code like this:
+
+```
+memory = currentProgram.getMemory()
+for addr in range(0xffcff4, 0xffd470):
+    memory.setByte(toAddr(addr), memory.getByte(toAddr(addr - 0xffcff4 + 0x0013d4)))
+```
+
 
 ## Sound
 
@@ -245,6 +300,16 @@ Each instrument is 0x3f in size
  * 0x08b - D2R
  * 0x09b - D1L (multiplied by note volume, and otherwise adjusted)
  * 0x0ab - RR
+
+## Ghidra colours
+
+Colour scheme is:
+
+ * **Green** Pretty completely understood code
+ * **Yellow** Incompletely understood code
+ * **Blue** Misc ROM data
+ * **Purple** Data copied to RAM
+
 
 ## Done
 
