@@ -174,30 +174,46 @@ fn main() {
         for (start, end, width, height, transpose, name) in &[
             (0x0291da, 0x297fa, 1, 1, false, "sega_logo"),
             (0x029fde, 0x02a0de, 1, 1, false, "push_start"),
-
-            // Rest of it doesn't really look like graphics! But just
-            // in case...
-            (0x02a910, 0x02d7ec, 1, 1, false, "undecoded3"),
-
-            (0x02d7ec, 0x02e0ec, 1, 1, false, "title_font_1x1"),
-            // TODO: Override image width.
+	    // TODO: Backdrop palette seems right?
+            (0x02d7ec, 0x02e0ec, 1, 1, false, "passwords_font_1x1"),
+            // TODO: Uses palette from splash_arena.
             (0x02e6ca, 0x02fcaa,  2, 2, true,  "title_font_2x2t"),
-            // 0x02fcaa - 0x02fd0a is ASCII code to font index mapping.
-            (0x02fd0a, 0x03070a,  2, 2, true,  "game_scorebar_2x2t"),
-            (0x03070a, 0x03084a,  1, 1, false, "game_scoredigits_1x1"),
+	    // Game palette...
+            (0x02fd0a, 0x03070a,  2, 2, true,  "game_status_bar_2x2t"),
+            (0x03070a, 0x03084a,  1, 1, false, "game_score_digits_1x1"),
             (0x03084a, 0x032c4a, 12, 8, false, "game_monitor_12x8"),
             (0x032c4a, 0x0330ca,  1, 1, false, "game_font_1x1"),
-            (0x0330ca, 0x034c4a,  2, 2, true,  "game_tokens_2x2t"),
+            (0x0330ca, 0x034c4a,  2, 2, true,  "game_misc_2x2t"),
             (0x034c4a, 0x035dca,  2, 2, false, "game_tokens_2x2"),
-            (0x035dca, 0x0425ca,  4, 4, true,  "game_players_4x4t"),
+            (0x035dca, 0x03efca,  4, 4, true,  "game_players_4x4t"),
+            (0x03efca, 0x0403ca,  4, 4, true,  "game_medibot_4x4t"),
+            (0x0403ca, 0x0425ca,  4, 4, true,  "game_ball_stuff_4x4t"),
             (0x0425ca, 0x04286a,  1, 1, false, "game_arena_1x1"),
             (0x04286a, 0x0454ca,  4, 4, false, "game_arena_4x4"),
 
             // second set of sprites, near the end of the ROM.
-            (0x0610c4, 0x068244, 2, 2, false, "training_2x2"),
-            (0x068244, 0x072444, 4, 4, false, "training_4x4"),
-            (0x072444, 0x074284, 1, 1, false, "font_1x1"),
-            (0x074284, 0x07e004, 2, 2, false, "training_players_6x6"),
+
+	    // TODO: Backdrop palette.
+            (0x0610c4, 0x0623c4, 2, 2, false, "menu_font"),
+	    // TODO: Training palette.
+            (0x0623c4, 0x067a44, 2, 2, false, "training_background_2x2"),
+            (0x067a44, 0x068244, 2, 2, false, "training_lights_2x2"),
+            (0x068244, 0x06da44, 4, 4, false, "training_buttons_4x4"),
+            (0x06da44, 0x072444, 4, 4, false, "training_armour_4x4"),
+
+	    // TODO: Backdrop palette
+            (0x072444, 0x072aa4, 1, 1, false, "font_orange_1x1"),
+            (0x072aa4, 0x072e44, 1, 1, false, "font_title_top_1x1"),
+            (0x072e44, 0x073284, 1, 1, false, "font_title_bottom_1x1"),
+	    // TODO: Training palette.
+	    (0x073284, 0x0734e4, 1, 1, false, "font_mgr_xfer_gym_1x1"),
+            (0x0734e4, 0x073964, 1, 1, false, "font_cash_1x1"),
+	    (0x073964, 0x073e04, 1, 1, false, "font_small_green_1x1"),
+	    // TODO: Backdrop palette
+	    (0x073e04, 0x074284, 1, 1, false, "font_white_1x1"),
+
+	    // TODO: Training palette.
+            (0x074284, 0x07e004, 2, 2, false, "training_faces_6x6"),
         ] {
             let w = 36 / width;
             let img_data = &data[*start..*end];
