@@ -301,6 +301,19 @@ Each instrument is 0x3f in size
  * 0x09b - D1L (multiplied by note volume, and otherwise adjusted)
  * 0x0ab - RR
 
+## Cheats
+
+There are two cheat codes, I decoded from the hex values with the
+following Haskell:
+
+```
+let decode = map (\x -> if x == 0x3f then '-' else if x >= 26 && x < 36 then (chr (x + ord '0' - 26)) else (chr $ x + 0x41))
+Prelude Data.Char> decode input
+"THE-EASIER-GAME-PASSWORD01234567"
+Prelude Data.Char> decode input2
+"THE-PLAYTESTERS-PASSWORD31415926"
+```
+
 ## Ghidra colours
 
 Colour scheme is:
@@ -309,7 +322,7 @@ Colour scheme is:
  * **Yellow** Incompletely understood code
  * **Blue** Misc ROM data
  * **Purple** Data copied to RAM
-
+ * **Grey** is dead code
 
 ## Done
 

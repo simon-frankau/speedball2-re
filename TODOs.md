@@ -38,7 +38,8 @@ DONE:
 
  * `set_monitor_overlay` could be reversed more?
  * `todo_build_final_score_overlay` needs a lot of work.
- * `transfer_cells` looks very interesting (or at least, its usage does!)
+
+ * `todo_print_string_thing` looks worth reversing.
 
 ### Fonts
 
