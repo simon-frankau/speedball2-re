@@ -41,5 +41,3 @@ just about get a very specific job done.
 ## TODO
 
  * `extract_sprites` should make the bottom of the players image look pretty
- * `extract_sprites` should identify the exact palette to use, and
-   only export that.

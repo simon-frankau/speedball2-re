@@ -48,6 +48,8 @@ const PALETTE_ADDRS: [(usize, &str); 23] = [
     (0x05d8cc, "splash_arena"),
 ];
 
+const OUT_DIR: &str = "out";
+
 ////////////////////////////////////////////////////////////////////////
 // Cheap wrapper around the image we're producing.
 //
@@ -77,10 +79,11 @@ impl Image {
         self.data[idx + 2] = b;
     }
 
-    fn save(&self, path: &Path) {
+    fn save(&self, path: &Path) -> anyhow::Result<()> {
         let img =
             RgbImage::from_vec(self.width as u32, self.height as u32, self.data.clone()).unwrap();
-        img.save(path).unwrap();
+        img.save(path)?;
+	Ok(())
     }
 }
 
@@ -139,9 +142,11 @@ fn build_image(data: &[u8], w: usize, h: usize, palette: &[u8]) -> Image {
     img
 }
 
-fn main() {
-    let data = fs::read("../../speedball2-usa.bin").unwrap();
+fn main() -> anyhow::Result<()> {
+    let data = fs::read("../../speedball2-usa.bin")?;
 
+    fs::create_dir_all(OUT_DIR)?;
+    
     let img_data = &data;
     let total_cells = img_data.len() / CELL_LEN;
     let w = 32; // Seems a reasonable width.
@@ -151,6 +156,8 @@ fn main() {
         let palette = &data[*palette_addr..];
         let img = build_image(img_data, w, total_cells / w, palette);
         img.save(Path::new(
-            format!("cells-{}.png", palette_name).as_str()));
+            format!("{}/cells-{}.png", OUT_DIR, palette_name).as_str()))?;
     }
+
+    Ok(())
 }

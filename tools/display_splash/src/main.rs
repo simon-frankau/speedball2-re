@@ -45,6 +45,8 @@ const SCREENS: [(usize, &str); 11] = [
     (0x05d8ca, "arena.png"),
 ];
 
+const OUT_DIR: &str = "out";
+
 ////////////////////////////////////////////////////////////////////////
 // Cheap wrapper around the image we're producing.
 //
@@ -74,10 +76,11 @@ impl Image {
         self.data[idx + 2] = b;
     }
 
-    fn save(&self, path: &Path) {
+    fn save(&self, path: &Path) -> anyhow::Result<()> {
         let img =
             RgbImage::from_vec(self.width as u32, self.height as u32, self.data.clone()).unwrap();
-        img.save(path).unwrap();
+        img.save(path)?;
+	Ok(())
     }
 }
 
@@ -146,7 +149,7 @@ fn decompress(data: &[u8]) -> (Vec<u8>, usize) {
             *curr = *curr << 1;
             res
         }
-    };
+    }
 
     fn next_int(ptr: &mut usize, curr: &mut u32, data: &[u8], i: usize) -> usize {
         let mut x: usize = 0;
@@ -154,7 +157,7 @@ fn decompress(data: &[u8]) -> (Vec<u8>, usize) {
             x = (x << 1) | if next_bit(ptr, curr, data) { 1 } else { 0 };
         }
         x
-    };
+    }
 
     println!("Decompressing. Uncompressed length: {:08x} Checksum: {:08x}",
         len, checksum);
@@ -239,7 +242,7 @@ fn get_data_len(data: &[u8]) -> usize {
     SCREEN_LEN + (largest_tile_id + 1) * CELL_LEN
 }
 
-fn draw_splash(data: &[u8], mut addr: usize, file_name: &Path) {
+fn draw_splash(data: &[u8], mut addr: usize, file_name: &Path) -> anyhow::Result<()> {
     // First element: type.
     let splash_type = (data[addr] as u16) << 8 | data[addr + 1] as u16;
     addr += 2;
@@ -281,13 +284,20 @@ fn draw_splash(data: &[u8], mut addr: usize, file_name: &Path) {
         }
     }
 
-    img.save(file_name);
+    img.save(file_name)?;
+
+    Ok(())
 }
 
-fn main() {
-    let data = fs::read("../../speedball2-usa.bin").unwrap();
+fn main() -> anyhow::Result<()> {
+    let data = fs::read("../../speedball2-usa.bin")?;
+
+    fs::create_dir_all(OUT_DIR)?;
+    
     for (addr, name) in SCREENS.iter() {
         println!("Processing {} ({:08x})...", name, *addr);
-        draw_splash(&data, *addr, &Path::new(name));
+        draw_splash(&data, *addr, &Path::new(&format!("{}/{}", OUT_DIR, name)))?;
     }
+
+    Ok(())
 }

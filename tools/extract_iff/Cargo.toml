@@ -5,3 +5,4 @@ authors = ["Simon Frankau <sgf@arbitrary.name>"]
 edition = "2018"
 
 [dependencies]
+anyhow = "1.*"
