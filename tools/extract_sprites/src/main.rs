@@ -26,7 +26,7 @@ const GAME_RED: usize = 0x0007c4;
 const GAME_BLUE: usize = 0x0007e4;
 const GAME: usize = 0x000804;
 const NON_GAME: usize = 0x029f5e;
-const TRAINING: usize = 0x029efe;
+const MGMT: usize = 0x029efe;
 const ARENA: usize = 0x05d8cc;
 
 // Output directory
@@ -176,18 +176,18 @@ fn main() -> anyhow::Result<()> {
 
         // second set of sprites, near the end of the ROM.
         (0x0610c4, 0x0623c4, 2, 2, false, NON_GAME, "menu_font"),
-        (0x0623c4, 0x067a44, 2, 2, false, TRAINING, "training_background_2x2"),
-        (0x067a44, 0x068244, 2, 2, false, TRAINING, "training_lights_2x2"),
-        (0x068244, 0x06da44, 4, 4, false, TRAINING, "training_buttons_4x4"),
-        (0x06da44, 0x072444, 4, 4, false, TRAINING, "training_armour_4x4"),
+        (0x0623c4, 0x067a44, 2, 2, false, MGMT,     "mgmt_background_2x2"),
+        (0x067a44, 0x068244, 2, 2, false, MGMT,     "mgmt_lights_2x2"),
+        (0x068244, 0x06da44, 4, 4, false, MGMT,     "mgmt_buttons_4x4"),
+        (0x06da44, 0x072444, 4, 4, false, MGMT,     "mgmt_armour_4x4"),
         (0x072444, 0x072aa4, 1, 1, false, NON_GAME, "font_orange_1x1"),
         (0x072aa4, 0x072e44, 1, 1, false, NON_GAME, "font_title_top_1x1"),
         (0x072e44, 0x073284, 1, 1, false, NON_GAME, "font_title_bottom_1x1"),
-	(0x073284, 0x0734e4, 1, 1, false, TRAINING, "font_mgr_xfer_gym_1x1"),
-        (0x0734e4, 0x073964, 1, 1, false, TRAINING, "font_cash_1x1"),
-	(0x073964, 0x073e04, 1, 1, false, TRAINING, "font_small_green_1x1"),
+	(0x073284, 0x0734e4, 1, 1, false, MGMT,     "font_mgr_xfer_gym_1x1"),
+        (0x0734e4, 0x073964, 1, 1, false, MGMT,     "font_cash_1x1"),
+	(0x073964, 0x073e04, 1, 1, false, MGMT,     "font_small_green_1x1"),
 	(0x073e04, 0x074284, 1, 1, false, NON_GAME, "font_white_1x1"),
-        (0x074284, 0x07e004, 2, 2, false, TRAINING, "training_faces_6x6"),
+        (0x074284, 0x07e004, 2, 2, false, MGMT,     "mgmt_faces_6x6"),
     ] {
         let w = 36 / width;
         let img_data = &data[*start..*end];
