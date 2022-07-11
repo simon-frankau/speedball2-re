@@ -1,6 +1,10 @@
 # Possible areas to investigate from
 
  * Have I got the button order incorrect?
+ * What happens if you unlight a star with a higher multiplier?
+ * Can look at the code associated with:
+   * Scoring goals
+   * Drawing the edges
 
 ## Data usage
 
