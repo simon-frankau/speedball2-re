@@ -8,8 +8,8 @@ Rough addresses (to be refined):
  * `0x000100` - Sega ROM id
  * `0x000200`? - Entry point, start of code.
  * `0x000614` - RAM initialisation code.
-     * `0x0007c4` - Start of palettes
-     * `0x000824`? - ???
+   * `0x0007c4` - Start of palettes
+   * `0x000824`? - ???
  * `0x002be4'? - Main entry point
  * `0x00f5e2` - Sound code
  * `0x010280` - FM sound bank
@@ -119,46 +119,235 @@ There's also some colour-like data at:
  * `0x02cb3e` and later has words counting up that could be shades of
    red. Seems unlikely, probably some other lookup tables.
 
-## VRAM memory map
+## Graphics overview
 
-Many addresses are configured in `init_vdp`.
+There are two main graphics configurations:
 
-I believe the +0x80 on the cell maps is 1 blank line at the top (64
-cells of 2 bytes each), balancing 1 line at the bottom, 23 lines used
-out of 25.
+ * Non-game graphics mode, configured by `display_configure_non_match`.
+ * In-game graphics mode, configured by `display_configure_match`.
 
-I suspect the transposed set-up of the cells in the Window overlay at
-0x0000 makes each column of the screen contiguous in Y coordinates, so
-that drawing into it at sub-cell Y coordinates is straightforward.
+The details of these modes are described in the following
+section. This subsection describes common features.
 
-TODO: We have a menu mode, and an in-game mode. -
-display_configure_match and display_configure_non_match.
+### Common VDP configuration
 
- * 0x0000 has 25x40 transposed tile data used by map at 0xf080. This
-   is fully populated (i.e. uses 1000 cells, 32000 bytes), and used
-   for text etc.
- * 0x7d00 (1000 tiles after 0x0000) has tile data used by map at
-   0xe080. This is sparsely populated (uses the tile map for
-   compression), and used for backgrounds.
- * 0xc500 holds the "TV monitor" image cells (12x8), which are mapped
-   into the Window layer, 2 rows down, one column in (code in
-   `display_configure_match`.
- * 0xd780-0xd800 holds the "offscreen marker" sprites.
- * 0xd800 is Sprite Attribute base address. Has 8 bytes zero'd by
-   display_configure.
- * 0xd900-da00 holds "PUSH_START" in game mode.
- * 0xdc00 is H scroll data table base address.
- * 0xdc40 holds the blank cell (filled with 0x0).
- * 0xdc60 holds a cell filled with 0x7.
- * 0xdc80 holds a cell filled with 0x6.
- * 0xdca0 holds the sprites for "PUSH START" (up to 0xdda0) in menu mode.
- * 0xe060-0xffe0 holds the sprites that make up the status bar,
-   stuffed into the non-visible parts of the cell maps!
- * 0xe080 holds a 64x25 scroll area (40 active columns), reading cells
-   starting at 0x7d00. Used for backgrounds. "Scroll A" in HW config.
- * 0xf080 also holds a 64x25 cell mapping (40 active columns), with a
-   transposed mapping reading cells from 0x0000 onwards. Used for
-   overlay such as text. "Window" in HW config.
+While `start` does a bit of VDP configuration, the real game-specific
+configuration occurs in `init_vdp`. Key configuration includes:
+
+ * Setting the screen to display 40x28 cells, no interlace.
+ * Setting scroll size to 64x32 cells.
+ * Setting Scroll A cell map's base address to 0xe000.
+ * Setting Window cell map's base address to 0xf000.
+ * (Setting Scroll B's base address to 0xe000 - unused,)
+ * Setting the sprite attribute base address to 0xd800.
+ * Putting H scroll data table at 0xdc00
+
+Despite setting up the display for 28 cells vertically, only 25 (*) are
+drawn to (hence most cell map writes starting at 0xe080/0xf080, a row
+in), presumably due to CRT overscan meaning the othe rows aren't
+guaranteed to be visible.
+
+(*) "PUSH START" gets drawn on row 26.
+
+Many functions use `vdp_address_set` to convert between a VRAM address
+and the value that needs to be written to `vdp_control`.
+
+### Palettes
+
+TODO
+
+`display_fade_in` and `display_fade_out`, also `display_splash`.
+
+Updates in `v_interrupt_handler`.
+
+## Non-game graphics mode
+
+### VDP memory map
+
+Configured by `display_configure_non_match`. The map looks like this:
+
+ * 0x0000-0x7d00 holds the cells representing the Window layer.
+ * 0x7d00-... holds the cells for the background/Scroll A layer.
+ * 0xd800-0xd808 - Sprite attribute base, zero'd.
+ * 0xdc00-0xdc40 - H scroll data table base address.
+ * 0xdc40 is blank cell (filled with 0x0)
+ * 0xdc60 is cell all filled with 0x7.
+ * 0xdc80 is cell all filled with 0x6.
+ * 0xdca0-0xdda0 - 8 cells for "PUSH START"
+ * 0xe000-0xf000 holds the Scroll A cell map, initialised to point at
+   0xdc40.
+ * 0xf000-0xffff holds the Window cell map, initially zero'd, then
+   configures as below.
+
+The actually-used cell maps start at 0xe080/0xf080, consisting of a
+40x25 grid of cells, with a stride between rows of 64 cells.
+
+The Window cell mapping, points to a 25x40 transposed set of cells at
+0x0000. Rows 3-22 use palette 1, the rest use palette 0. All cells
+have the priority bit set. Hardware scrolling is reset.
+
+The cells being transposed makes sub-cell Y positioning easier - you
+can always add/subtract 4 bytes to go to the next/previous row.
+
+While 25x40 cells are set up for the Window mapping, 0x0000-0x8c00 is
+initially zero'd - enough storage for 28x40 cells. Presumably at some
+point 28 rows were used for the overlay?
+
+### Background layer
+
+Usually, the background (Scroll A) layer is loaded by
+`display_splash`, which also initialises the palette. Once the cell
+mapping is written, the cell data itself is written to 0x7d00. The
+cell data isn't a full screen (like the Window layer), but makes use
+of the cell mapping to remove redundancy (empty/repeated cells, etc.).
+
+Some backgrounds are compressed in ROM. They are decompressed into
+`backbuffer` before being transferred to VDP RAM.
+
+A few screens (the manager, transfer and gym screens) are
+different. They are built by `draw_management_background`, which
+copies the shared cell data for the backdrops into 0x7d00, and then
+writes the cell map into 0xe080 onwards in 2x2 cell blocks.
+
+### Back-buffering and blitting
+
+Most of the non-game mode drawing on the Window/foreground layer is
+handled by a simple back-buffered bitmap - a one-to-one cell mapping
+is provided onto the screen, and then the cell contents are
+updated. The back-buffering is done by drawing into the `backbuffer`
+memory (X major array of cells, 25x40 in size).
+
+`backbuffer` is modified by:
+
+ * `draw_box_colour` (calling `draw_colour_h_line`)
+ * `draw_xor_square` (calling `draw_xor_horizontal_line` and
+   `draw_xor_vertical_line`)
+ * `put_cell` - used by various display functions.
+ * `put_masked_cell` - ditto.
+
+ Once modified, the cells to blit into the VDP RAM need to be
+ recorded. To do this, we have:
+
+ * `schedule_box` - used by `draw_box_colour` and `draw_box_square`
+ * `schedule_cell_transfer`, which returns an address to draw into,
+   and is used by `put_cell` and `put_masked_cell`.
+
+These functions write to `cell_list`, updating `cell_list_end`.
+
+The function to then blit `backbuffer` to the VDP is then
+`tranfer_cells` (which is also called by the transfer-scheduling
+functions if the cell list overflows). `transfer_cells` synchronises
+this transfer with a vsync.
+
+### Misc drawing
+
+A few routines don't go via `back_buffer`:
+
+ * `display_push_start_non_match` writes the cells for "PUSH START"
+   into row 26 of the Window layer.
+ * `display_screen_block` draws a big block of the cell coloured 0x6
+   (at 0xdc80) into the middle of the background (Scroll A)
+   layer. This is used to provide a flat background for the various
+   stats tables etc. in the UI.
+ * `vdp_write_2_cell` is used by `display_title_font_char` to print
+   parts of the intro text into the Window (overlay) layer cells.
+
+### TODO
+
+`draw_management_background`
+
+## In-game graphics
+
+### VDP memory map
+
+Configured by `display_configure_match`. The map looks like this:
+
+ * 0x0000-0x2f00 - 0x178 cells of cells representing the arena
+ * 0x2f00-0xc100 - 0x490 cells of player sprites
+ * 0xc500-0xd100 - 0x60 cells reserved for TV monitor.
+ * 0xd780-0xd7c0 - 2 cells used for offscreen marker 1.
+ * 0xd7c0-0xd800 - 2 cells used for offscreen marker 2.
+ * 0xd800-0xd808 - Sprite attribute base.
+ * 0xd900-0xda00 - 8 cells for "PUSH START"
+ * 0xdc00-0xdc40 - H scroll data table base address.
+ * 0xdc40 is blank cell (filled with 0x0)
+ * 0xdc60 is a cell all filled with 0x7.
+ * 0xe000-0xee00 - Cell mapping for Scroll A (background) layer - 64x28 mapping
+ * 0xf000-0xf??? - Cell mapping for Window (foreground) layer - 64x28 mapping
+
+ Foreground/Window layer is initialised with:
+
+ * One row 0xdc60 (all 7s), palette 2, priority set
+ * 23 rows of 0xdc40 (blank cell)
+ * 2 rows of status bar, palette 2, priority set
+ * 2 rows of 0xdc60 (all 7s)
+
+The cell mapping is then overwritten to display cells making up the
+"TV monitor" from 0xc500 (12x8 cells).
+
+The cells that make up the status bar are stored in all the "dead
+space" of the cell mappings 0xe000-0xffff.
+
+(The offscreen markers aren't initialised by
+`display_configure_match`, they're set separately).
+
+### Initialisation
+
+The VDP memory is configured for game graphics in
+`display_configure_match`.
+
+### Back-buffering and blitting
+
+ TODO: How do other cells get drawn? Apparently
+ `todo_transfer_to_vram` and `vram_copy_list`?!
+
+ * TODO: Stuff in `match_start_todo_1_1` and `match_start_todo_1_1_1`.
+
+TODO: `todo_push_barney` and friends.
+
+TODO: `transfer_in_game_bits_sprite_shifted` variants
+
+TODO: readme_FUN_0000c890
+
+TODO: readme_FUN_000085fe
+
+### Background and cell mapping
+
+The background resides on Scroll A (sprites are overlayed via the
+Window layer, as implemented above - TODO: lies?). The hardware scroll window is 64
+cells wide, but we want an 80-cell-wide pitch. So, what we do is use
+hardware scrolling to do sub-cell positioning, and update the cell map
+instead - software scrolling at the cell level - from an in-memory
+cell map. This is implemented in `transfer_cell_map_with_scroll`.
+
+TODO: Confusingly, this map appears to be placed in `backbuffer`?!
+
+`transfer_cell_map_with_scroll` is an implementation of a
+semi-software scrolling for the Scroll A (background) layer. It reads
+from `backbuffer`. For sub-cell scrolling, it calls `set_hw_scroll`,
+which is only otherwise called by initialisation functions.
+
+### Monitor overlay
+
+The TV monitor overlay is drawn into through cells at 0xc500-0xd100.
+
+`set_monitor_overlay` calls `add_monitor_overlay` to blit the image
+into VDP RAM, or clears the cells if there's no overlay.
+
+### Misc drawing
+
+ * `draw_health_meter` calls `draw_health_meter_aux` to update the
+   health bars in the status bar, by drawing on the associated cells.
+ * `display_score_digit` is used to draw the score into the cells of
+   the status bar.
+ * `display_time_digit` draws the time remaining into the cells of the
+   status bar.
+ * `draw_cell_marker`, calling `draw_cell_markers_aux`, draws the
+   markers for active players that are offscreen, into the cells at
+   0xd780 and 0xd7c0, and then updates the cell mapping in the Window
+   overlay layer to show them. The overwritten cells are saved so that
+   `clear_offscreen_markers` and `clear_offscreen_markers_aux` can
+   clear the mappings to hide the markers.
 
 ## RAM memory map
 
@@ -323,6 +512,7 @@ Colour scheme is:
  * **Blue** Misc ROM data
  * **Purple** Data copied to RAM
  * **Grey** is dead code
+
 
 ## Done
 
