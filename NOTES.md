@@ -252,10 +252,6 @@ A few routines don't go via `back_buffer`:
  * `vdp_write_2_cell` is used by `display_title_font_char` to print
    parts of the intro text into the Window (overlay) layer cells.
 
-### TODO
-
-`draw_management_background`
-
 ## In-game graphics
 
 ### VDP memory map
@@ -301,32 +297,29 @@ The VDP memory is configured for game graphics in
  TODO: How do other cells get drawn? Apparently
  `todo_transfer_to_vram` and `vram_copy_list`?!
 
- * TODO: Stuff in `match_start_todo_1_1` and `match_start_todo_1_1_1`.
-
-TODO: `todo_push_barney` and friends.
+`FUN_0000de5e` cares about vram_copy_list.
 
 TODO: `transfer_in_game_bits_sprite_shifted` variants
 
-TODO: readme_FUN_0000c890
-
-TODO: readme_FUN_000085fe
-
 ### Background and cell mapping
 
-The background resides on Scroll A (sprites are overlayed via the
-Window layer, as implemented above - TODO: lies?). The hardware scroll window is 64
-cells wide, but we want an 80-cell-wide pitch. So, what we do is use
-hardware scrolling to do sub-cell positioning, and update the cell map
-instead - software scrolling at the cell level - from an in-memory
-cell map. This is implemented in `transfer_cell_map_with_scroll`.
-
-TODO: Confusingly, this map appears to be placed in `backbuffer`?!
-
 `transfer_cell_map_with_scroll` is an implementation of a
-semi-software scrolling for the Scroll A (background) layer. It reads
-from `backbuffer`. For sub-cell scrolling, it calls `set_hw_scroll`,
-which is only otherwise called by initialisation functions.
+semi-software scrolling for the Scroll A (background) layer. This is
+needed because the cell map in VRAM is 64x32, but the pitch is
+80x144. It reads from an 80x144 cell mapping in `backbuffer`, and
+uses `set_hw_scroll` to manage sub-cell scrolling.
 
+The mapping is initialised by `init_pitch_cell_map` (helped by
+`write_background_cell_mapping`).
+
+Some modifications are made dynamically:
+
+ * `draw_background_sprite` will overwrite 2x2 cell regions, saving
+   the originals to `background_save_stack`, so that they may be
+   restored by `restore_background`.
+ * `update_background_sides` will overwrite the cells associated with
+   the stars and electric zappers, taking the data from `edge_blocks`.
+ 
 ### Monitor overlay
 
 The TV monitor overlay is drawn into through cells at 0xc500-0xd100.
@@ -342,6 +335,12 @@ into VDP RAM, or clears the cells if there's no overlay.
    the status bar.
  * `display_time_digit` draws the time remaining into the cells of the
    status bar.
+ * `draw_status_bar_position` draws a 2x2 image into the cells of the
+   status bar. Used for displaying the little green status lights.
+ * `overwrite_cell` copies a cell into VRAM. It is used by
+   `draw_status_bar_powerup` to draw the current power-up in the
+   status bar. Very similar to what `draw_status_bar_position` does,
+   except source image is not transposed.
  * `draw_cell_marker`, calling `draw_cell_markers_aux`, draws the
    markers for active players that are offscreen, into the cells at
    0xd780 and 0xd7c0, and then updates the cell mapping in the Window
@@ -364,7 +363,6 @@ memory = currentProgram.getMemory()
 for addr in range(0xffcff4, 0xffd470):
     memory.setByte(toAddr(addr), memory.getByte(toAddr(addr - 0xffcff4 + 0x0013d4)))
 ```
-
 
 ## Sound
 
@@ -510,9 +508,9 @@ Colour scheme is:
  * **Green** Pretty completely understood code
  * **Yellow** Incompletely understood code
  * **Blue** Misc ROM data
- * **Purple** Data copied to RAM
+ * **Pink** Data copied to RAM
+ * **Purple** Understood data
  * **Grey** is dead code
-
 
 ## Done
 
