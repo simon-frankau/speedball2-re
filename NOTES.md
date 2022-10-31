@@ -209,7 +209,7 @@ different. They are built by `draw_management_background`, which
 copies the shared cell data for the backdrops into 0x7d00, and then
 writes the cell map into 0xe080 onwards in 2x2 cell blocks.
 
-### Back-buffering and blitting
+### Back-buffering and blitting of foreground
 
 Most of the non-game mode drawing on the Window/foreground layer is
 handled by a simple back-buffered bitmap - a one-to-one cell mapping
@@ -260,18 +260,22 @@ Configured by `display_configure_match`. The map looks like this:
 
  * 0x0000-0x2f00 - 0x178 cells of cells representing the arena
  * 0x2f00-0xc100 - 0x490 cells of player sprites
+ * 0xc100-0xc500 - 4x4 sprite of bumper
  * 0xc500-0xd100 - 0x60 cells reserved for TV monitor.
+ * 0xd100-0xd780 - Sprites: 2 Medibots (4x4), ball launcher (4x4),
+   ball (2x2)
  * 0xd780-0xd7c0 - 2 cells used for offscreen marker 1.
  * 0xd7c0-0xd800 - 2 cells used for offscreen marker 2.
- * 0xd800-0xd808 - Sprite attribute base.
+ * 0xd800-0xd900 - 32 hardware sprite definitions
  * 0xd900-0xda00 - 8 cells for "PUSH START"
+ * 0xda00-0xdc00 - 4 2x2 sprites - coin and 3 power-ups
  * 0xdc00-0xdc40 - H scroll data table base address.
  * 0xdc40 is blank cell (filled with 0x0)
  * 0xdc60 is a cell all filled with 0x7.
+ * 0xdc80-0xe000 - Sprites: 2x player markers (2x2), player number
+   (2x2), big ball (4x4)
  * 0xe000-0xee00 - Cell mapping for Scroll A (background) layer - 64x28 mapping
- * 0xf000-0xf??? - Cell mapping for Window (foreground) layer - 64x28 mapping
-
- Foreground/Window layer is initialised with:
+ * 0xf000-0xfe00 - Cell mapping for Window (foreground) layer - 64x28 mapping
 
  * One row 0xdc60 (all 7s), palette 2, priority set
  * 23 rows of 0xdc40 (blank cell)
@@ -292,15 +296,6 @@ space" of the cell mappings 0xe000-0xffff.
 The VDP memory is configured for game graphics in
 `display_configure_match`.
 
-### Back-buffering and blitting
-
- TODO: How do other cells get drawn? Apparently
- `todo_transfer_to_vram` and `vram_copy_list`?!
-
-`FUN_0000de5e` cares about vram_copy_list.
-
-TODO: `transfer_in_game_bits_sprite_shifted` variants
-
 ### Background and cell mapping
 
 `transfer_cell_map_with_scroll` is an implementation of a
@@ -319,15 +314,18 @@ Some modifications are made dynamically:
    restored by `restore_background`.
  * `update_background_sides` will overwrite the cells associated with
    the stars and electric zappers, taking the data from `edge_blocks`.
+ * The score multipliers are modified in the background layer in a
+   complicated way that's handled in the "sprites" section.
  
-### Monitor overlay
+### Monitor overlay (Window layer)
 
-The TV monitor overlay is drawn into through cells at 0xc500-0xd100.
+The TV monitor overlay is drawn into through cells at
+0xc500-0xd100. These cells are permanently mapped in the Window layer.
 
 `set_monitor_overlay` calls `add_monitor_overlay` to blit the image
 into VDP RAM, or clears the cells if there's no overlay.
 
-### Misc drawing
+### Misc drawing (Window layer)
 
  * `draw_health_meter` calls `draw_health_meter_aux` to update the
    health bars in the status bar, by drawing on the associated cells.
@@ -347,6 +345,109 @@ into VDP RAM, or clears the cells if there's no overlay.
    overlay layer to show them. The overwritten cells are saved so that
    `clear_offscreen_markers` and `clear_offscreen_markers_aux` can
    clear the mappings to hide the markers.
+
+### Back-buffering and blitting of foreground/sprites
+
+Just as non-game mode has `cell_list` and `cell_list_end` to schedule
+cells, game mode has `game_cell_list` and `game_cell_list_end` to
+store the set of cells scheduled to be transfered to VRAM.
+
+To create a sprite, any cells that need to be transferred to VRAM are
+queued on `game_cell_list_end`, and then the sprite itself is defined
+by calling `build_hw_sprite`, which supports up to 32 sprites, writing
+them into `hw_sprite_start`, with the current pointer `hw_sprite_ptr`
+and counter `hw_sprite_count`.
+
+The functions that append to `game_cell_list_end` are sprite drawing
+functions, accessed via function pointers on the sprite objects
+(offset 4 within the object), and called by `draw_sprite` and
+`replay_frame` (see below). Not all sprites need to add cells to
+transfer, since some cells are pre-allocated in the VRAM. These just
+need to call `build_hw_sprite`.
+
+The function `transfer_hw_sprites` then transfers the sprite list to
+VRAM, transfers the needed cells to VRAM, and clears the lists.
+
+### Sprite objects
+
+In-game sprites are manipulated via sprite objects, which contain both
+the information on how to draw them and their state and how to
+animate/update them.
+
+TODO: `draw_sprite` is also used to draw non-game sprites.
+
+#### Sprite drawing functions
+
+Each sprite has a sprite drawing function to specify how it's
+displayed. The functions are as follows (sorted by location of code in
+memory):
+
+| Function name             | Cell transfer? | Build sprite? | Sprite address   |
+|---------------------------|----------------|---------------|------------------|
+| `sprite_fn_player`        | No (1)         | Yes           | 0x2f00-0xc100    |
+| `sprite_fn_ball_launcher` | Yes            | No (2)        | 0xd500-0xd700    |
+| `sprite_fn_bumper`        | Yes            | No (2)        | 0xc100-0xc500    |
+| `sprite_fn_big_ball`      | Yes            | Yes           | 0xde00-0xe000    |
+| `sprite_fn_ball`          | Yes            | Yes           | 0xd700-0xd780    |
+| `sprite_fn_coin`          | Yes (3)        | No (4)        | 0xda00-0xda80    |
+| `sprite_fn_power_up_1`    | Yes (3)        | No (4)        | 0xda80-0xdb00    |
+| `sprite_fn_power_up_2`    | Yes (3)        | No (4)        | 0xdb00-0xdb80    |
+| `sprite_fn_power_up_3`    | Yes (3)        | No (4)        | 0xdb80-0xdc00    |
+| `sprite_fn_blue_marker`   | Yes            | Yes           | 0xdc80-0xdd00    |
+| `sprite_fn_red_marker`    | Yes            | Yes           | 0xdd00-0xdd80    |
+| `sprite_fn_player_number` | Yes            | Yes           | 0xdd80-0xde00    |
+| `sprite_fn_medibot_1`     | Yes            | Yes           | 0xd100-0xd300    |
+| `sprite_fn_medibot_2`     | Yes            | Yes           | 0xd300-0xd500    |
+| `sprite_fn_multiplier_a`  | No (5)         | No (5)        | In 0x0000-0x2f00 |
+| `sprite_fn_multiplier_b`  | No (5)         | No (5)        | In 0x0000-0x2f00 |
+
+ 1. Player sprites are always present in VRAM.
+ 2. This "sprite" appears in the arena background. The transfer simply
+    overwrites the cells used by the background cell mapping.
+ 3. Using shared code in `sprite_fn_power_up_common`.
+ 4. Since these small sprites are cell-aligned, they're just drawn
+    into the background cell mapping, saving the use of a hardware
+    sprite.
+ 5. These sprite are not cell-aligned, but they're still drawn
+    directly into the background cells directly in a surprisingly
+    complicated way by these functions.
+
+The score multipliers are particularly complicated. The bumper and
+ball launcher are drawn into by overwriting the cells in the
+background mapping, to make it easy to find the cells to write to. The
+score multiplier code, instead, finds the cells in the background
+mapping and overwrites them, perhaps because all VRAM was used at that
+point.
+
+As far as I can tell, they're not actually drawn as sprites with
+`draw_sprite`, but the drawing functions are called directly by
+`draw_score_multipliers`. This is probably because there are 4
+sprites, for 2 sets of multiplier lights on each side, but we don't
+actually need to draw both sides because overwriting the cells for one
+side changes the cells for the other side at the same time.
+
+Overall, it feels like the sprite system was written with a very
+general approach, originally, and then modified with various pieces
+moving away from a universal `draw_sprite` path.
+
+### Replay
+
+Action replay is provided by keeping a circular buffer of sprites to
+draw. `draw_sprite` calls `save_sprite_for_replay`, which calls
+`write_replay_buf` to save the data in `replay_buf` (pointed to by
+`replay_buf_head_ptr` and `replay_buf_tail_ptr`. Frames are separated
+by recorded screen origins, created by `save_replay_origin`.
+
+Replays are then performed by `run_replay`, which calls `replay_frame`
+and ultimately `read_replay_buffer`. One interesting constraints of
+the replay infrastructure is that sprite appearance must only depend
+on position and sprite id, no other factors that may not be
+recalculated during the replay. There are a few hacks in the code to
+meet this constraint.
+
+### Animation
+
+### Collision etc.
 
 ## RAM memory map
 
