@@ -6,6 +6,8 @@
    * Scoring goals
    * Drawing the edges
 
+ * What's going on with X and Y bumps on the sprites?
+
 ## Data usage
 
  * Accessing sprites
