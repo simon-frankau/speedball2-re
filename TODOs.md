@@ -30,6 +30,8 @@ Remember to mark loose ends "TODO" or "unk"!
 
 Code reached from the init process
 
+Figure out how the X and Y bumps are actually used on the player objects.
+
 ## I/O locations
 
 **All done**
