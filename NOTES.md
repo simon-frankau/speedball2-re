@@ -612,14 +612,3 @@ Colour scheme is:
  * **Pink** Data copied to RAM
  * **Purple** Understood data
  * **Grey** is dead code
-
-## Done
-
-Ranges fully understood:
-
-0x00000000 - 0x00000200
-0x000007c4 - 0x00000824
-0x00013806 - 0x0002246c
-0x0002260a - 0x0002914e
-0x00029e5e - 0x00029f9e
-0x0002e620 - 0x0007ffff

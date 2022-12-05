@@ -1,77 +1,24 @@
-# Possible areas to investigate from
+# Still to do
 
- * Have I got the button order incorrect?
- * What happens if you unlight a star with a higher multiplier?
- * Can look at the code associated with:
-   * Scoring goals
-   * Drawing the edges
+ * Update NOTES.md
+   * Clean up things that are exist, but are just plain messy.
+   * Document important common structs, like the sprites and players.
+   * Maybe write up as outline of the AI
+ * Have I got the A/B/C button order incorrect?
+ * What's going on with X and Y bumps on the sprites? 
 
- * What's going on with X and Y bumps on the sprites?
-
-## Data usage
-
- * Accessing sprites
- * Usage of identified variables
-
-### More backgrounds and images etc.
+# Further work
 
  * Deal with calls to `draw_training_background`
   * Identify 2x2 maps
   * Update extractors to handle it.
+ * Similarly, extract the 4x4 tiles that make up the pitch, and build
+   a full image of the pitch.
+ * Give an outline of how the AI works in NOTES.md
+ * Reproduce the AI behaviour as a kind of demo?
 
- * `set_monitor_overlay` could be reversed more?
- * `todo_build_final_score_overlay` needs a lot of work.
-
-## Loose ends
+# Loose ends
 
 Anything containing "TODO" or "unk".
 
 Remember to mark loose ends "TODO" or "unk"!
-
-Code reached from the init process
-
-Figure out how the X and Y bumps are actually used on the player objects.
-
-## I/O locations
-
-**All done**
-
- * All uses of the I/O area
- * All uses of VDP
- * All uses of FM chip
- * All accesses of Z80 resources
-
-## Splash screens
-
-**All done**
-
- * `splash_backdrop`
- * `splash_victory`
- * `splash_defeat`
- * `splash_win_league`
- * `splash_win_promo` 
- * `splash_win_cup`
- * `splash_win_knockout`
- * `splash_start1`
- * `splash_start2`
- * `splash_title`
- * `splash_arena`
- * `display_splash`
-
-## Fonts
-
-**All done**
-
- * `0x029fde` - Font for "PUSH START"
- * `0x02d7ec` - 1x1 font password font
- * `0x02e6ca` - Title screen font, 2x2.
- * `0x032c4a` - 1x1 sprite of in-game font
- * `0x0610c4` - Big font, then 2x2 sprites associated with training
-                screen.
- * `0x072444` - 1x1 font sprites
-
-## Other things
-
- * Text - pretty much done
- * Palettes - done
- * 
